@@ -1,0 +1,54 @@
+-> graph_definition.py is your same node/graph logic, just made importable
+-> main.py uses Pydantic BaseModel classes to define strict input/output shapes for each endpoint
+-> POST /session creates a thread_id and seeds state via update_state
+-> POST /chat uses an existing thread_id + config to continue that conversation
+-> The endpoints return Pydantic response objects (ChatResponse, StartSessionResponse)
+-> create_graph() is actually only called once, right when the server starts:
+
+-> What makes each user's conversation separate is the thread_id string passed inside config
+
+-> Think of it like a single restaurant kitchen (compiled_graph) serving 
+   many different tables (thread_ids) — the kitchen itself 
+   isn't rebuilt per table, but each table's order is tracked separately.
+
+-> StartSessionRequest doesn't include a thread_id — the server
+   generates it (str(uuid.uuid4())) and hands it back to the client. 
+   ChatRequest, on the other hand, does require thread_id, because by
+   that point the client already received one from /session
+   and must send it back on every subsequent message so LangGraph knows which conversation to continue.
+
+
+
+ flow >>>>
+
+
+ Now let's walk through each stage, point by point, matching the diagram top to bottom.
+
+1. Client → POST /chat
+The client already has a thread_id (from a previous /session call) and sends a new message: {"thread_id": "...", "user_input": "give me a hard DSA question"}.
+
+2. compiled_graph.invoke()
+FastAPI's chat() function calls compiled_graph.invoke({"user_input": ...}, config={"configurable": {"thread_id": ...}}). Behind the scenes, LangGraph looks up everything already stored for that thread_id (company_name, role, message history) and merges in the one new field you passed — user_input. Nothing you didn't explicitly send gets lost.
+
+3. classifier_node
+This runs first, always — it's what START points to. It reads the fresh user_input, asks the LLM which of the four categories it falls into, and writes that label into state['classifier'].
+
+4. The branch point
+router_function reads state['classifier'] and returns one of four labels. Your add_conditional_edges mapping then sends execution to exactly one of the four paths — never more than one per request.
+
+5. The four branches themselves
+
+DSA → this box hides more detail than it shows: it's actually reviwer_node → three parallel candidate nodes → picker_node. All of that collapses into final_result by the time it reaches this point.
+Behavioral → one direct LLM call, no retrieval needed.
+Company research → calls Tavily search first, then feeds those results into the LLM.
+Resume gap → calls your FAISS resume_retriever first, then feeds those chunks into the LLM.
+
+Whichever one runs, it writes into the same state['final_result'] key.
+
+6. Convergence → END
+No matter which branch ran, they all point to END in your graph. app.invoke() returns the final state dict.
+
+7. Back to the client
+chat() pulls result["final_result"] and result["classifier"] out of that dict, wraps them in your ChatResponse Pydantic model, and FastAPI serializes that as the JSON response the client receives.
+
+
