@@ -56,7 +56,7 @@ def build_RAG(pdf_path: str):
 
 
 # TODO: update this path to your actual resume PDF location
-resume_retriever = build_RAG(r"C:\Users\Yash\Desktop\langGraph\AI_interview_prep_coach\Agent\Hingu_Krishn_Resume_compressed.pdf")
+resume_retriever = build_RAG(r"Agent\Hingu_Krishn_Resume_compressed.pdf")
 
 
 # --- nodes ---
