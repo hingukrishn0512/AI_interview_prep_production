@@ -10,6 +10,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from dotenv import load_dotenv
+from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
+import os
 
 load_dotenv()
 
@@ -21,8 +23,10 @@ tools = [search_tool]
 llm =  ChatGroq(model="openai/gpt-oss-120b" , temperature=0.2)
 llm_tools = llm.bind_tools(tools)
 
-embedings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
+embedings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.environ["HF_TOKEN"],
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+)
 
 def merge_dict(left, right):
     """Custom reducer to merge candidate questions without overwriting."""

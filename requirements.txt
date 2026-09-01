@@ -8,7 +8,6 @@ langchain-text-splitters
 faiss-cpu
 pypdf
 python-dotenv
-sentence-transformers
 fastapi
 uvicorn[standard]
 pydantic
