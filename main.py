@@ -119,9 +119,16 @@ def chat(payload: ChatRequest):
         classifier=result["classifier"],
     )
 
+@app.get("/")
+def root():
+    return {"message": "AI Interview Prep Coach API is running. See /docs for usage."}
+
 #  dont need reload , render will handle it by the PORT
 if __name__ == "__main__":
     import uvicorn
     import os
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+
+
+# https://ai-interview-prep-production-1.onrender.com/docs
