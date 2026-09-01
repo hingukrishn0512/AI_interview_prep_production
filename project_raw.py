@@ -10,7 +10,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from dotenv import load_dotenv
 from light_embeddings import LightHFEmbeddings
-import os
+
 
 load_dotenv()
 
@@ -55,9 +55,13 @@ def build_RAG(pdf_path: str):
     return vector_store.as_retriever(search_kwargs={"k": 4})
 
 
-# TODO: update this path to your actual resume PDF location
-resume_retriever = build_RAG(r"Agent\Hingu_Krishn_Resume_compressed.pdf")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+# TODO: update this path to your actual resume PDF location
+resume_retriever = build_RAG(
+    os.path.join(BASE_DIR, "Hingu_Krishn_Resume_compressed.pdf")
+)
 
 # --- nodes ---
 
