@@ -2,16 +2,20 @@ import os
 import requests
 from langchain_core.embeddings import Embeddings
 
-
 class LightHFEmbeddings(Embeddings):
-    """Calls the Hugging Face Inference API directly over HTTP, so no torch,
-       transformers, or sentence-transformers ever get loaded into this process.
-       This keeps memory usage low enough to fit Render's free 512MB limit."""
+    """Calls the Hugging Face Inference Providers router over HTTP, so no torch,
+       transformers, or sentence-transformers ever get loaded into this process."""
 
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.model_name = model_name
-        self.api_url = f"https://api-inference.huggingface.co/models/{model_name}"
-        self.headers = {"Authorization": f"Bearer {os.environ['HF_TOKEN']}"}
+        self.api_url = f"https://router.huggingface.co/hf-inference/models/{model_name}/pipeline/feature-extraction"
+        token = os.environ.get("HF_TOKEN")
+        if not token:
+            raise RuntimeError(
+                "HF_TOKEN environment variable is not set. "
+                "Set it in your Render service's Environment tab."
+            )
+        self.headers = {"Authorization": f"Bearer {token}"}
 
     def _call_api(self, texts):
         response = requests.post(
