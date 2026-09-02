@@ -66,30 +66,34 @@ resume_retriever = build_RAG(
 # --- nodes ---
 
 def classifier_node(state: state) -> dict:
-    """looks at the user's input and decides which of the 4 branches to route to"""
+    """looks at the user's input and decides which of the 5 branches to route to"""
     user_message = state['user_input']
-
+ 
     prompt = f"""You are a query classifier for an AI interview prep coach.
-
+ 
     Your task is to look at the user's message and decide which category it belongs to.
-
+ 
     Reply with only ONE word, nothing else:
     - "dsa" if they want a coding or DSA practice question
     - "behavioral" if they want a behavioral or HR-style interview question
     - "company_research" if they're asking about the company's interview process, culture, or news
     - "resume_gap" if they're asking what to brush up on based on their resume vs the role
-
+    - "general_chat" if it's a greeting, small talk, thanks, or anything not specifically
+      requesting a practice question or research
+ 
     user_input:
     {user_message}
     """
-
+ 
     response = llm.invoke(prompt)
     category = response.content.strip().lower()
-
-    valid_categories = ["dsa", "behavioral", "company_research", "resume_gap"]
+ 
+    # "general_chat" now included, so a genuine greeting doesn't get misrouted
+    # into "behavioral" by the fallback
+    valid_categories = ["dsa", "behavioral", "company_research", "resume_gap", "general_chat"]
     if category not in valid_categories:
-        category = "behavioral"
-
+        category = "general_chat"
+ 
     return {"classifier": category}
 
 
@@ -307,21 +311,54 @@ def behavioral_node(state: state) -> dict:
     response = llm.invoke(prompt)
     return {"final_result": response.content.strip()}
 
+def general_chat_node(state: state) -> dict:
+    """handles greetings, small talk, and anything that isn't a specific coaching request"""
+    user_message = state['user_input']
+    role = state.get('role', '')
+    company_name = state.get('company_name', '')
+    prompt = f"""You are a friendly AI interview prep coach chatting casually with a candidate
+    preparing for a {role} role at {company_name}.
+
+
+    The candidate just said:
+    {user_message}
+
+    Respond naturally and briefly — like a real person, not a scripted assistant.
+
+    Read the room:
+    - If they're greeting you for the first time or seem unsure what you do, you can
+      mention you can help with DSA questions, behavioral questions, company research,
+      or resume gap analysis — but only ONCE per conversation, and only if it fits naturally.
+    - If they're saying bye, thanks, or wrapping up, just say something warm and short back.
+      Do NOT pitch your features again or ask how their prep is going if you've already
+      asked that earlier in this conversation.
+    - If they're just chatting (a joke, small talk, a random comment), just chat back.
+      Don't redirect every reply toward interview prep.
+    - Never repeat a phrase or question you already used earlier in this conversation.
+
+    Keep it to 1-2 sentences. No bullet points, no lists, no repeated sign-offs.
+    """
+    response = llm.invoke(prompt)
+    final_result = response.content.strip()
+    return {
+        "final_result": final_result,
+        "messages": [("ai", final_result)],
+    }
+
 
 def router_function(state: state):
-    """reads the category set by classifier_node and decides which branch to go to next"""
+    """reads the category set by classifier_node and returns the ACTUAL node name to go to next"""
     category = state['classifier']
-
     if category == "dsa":
-        return "dsa"
+        return "reviwer_node"
     elif category == "company_research":
-        return "company_research"
+        return "company_reasearch_node"
     elif category == "resume_gap":
-        return "resume_gap"
+        return "resume_gap_node"
     elif category == "behavioral":
-        return "behavioral"
-
-    return "behavioral"
+        return "behavioral_node"
+    else:
+        return "general_chat_node"
 
 #  it will called once when the session created 
 # of the create graph we need to wrap it into the function and save it memorysaver
@@ -341,20 +378,10 @@ def create_graph():
     graph.add_node("company_reasearch_node", company_reasearch_node)
     graph.add_node("resume_gap_node", resume_gap_node)
     graph.add_node("behavioral_node", behavioral_node)
-
+    graph.add_node(general_chat_node)
     graph.add_edge(START, "classifier_node")
 
-    graph.add_conditional_edges(
-        "classifier_node",
-        router_function,
-        {
-            "dsa": "reviwer_node",
-            "company_research": "company_reasearch_node",
-            "resume_gap": "resume_gap_node",
-            "behavioral": "behavioral_node",
-        }
-    )
-
+    graph.add_conditional_edges("classifier_node", router_function)
     graph.add_edge("reviwer_node", "array_hasing_node")
     graph.add_edge("reviwer_node", "trees_graphs_node")
     graph.add_edge("reviwer_node", "dp_node")
@@ -367,6 +394,7 @@ def create_graph():
     graph.add_edge("company_reasearch_node", END)
     graph.add_edge("resume_gap_node", END)
     graph.add_edge("behavioral_node", END)
+    graph.add_edge("general_chat_node", END)
 
     checkpointer = MemorySaver()
     return graph.compile(checkpointer=checkpointer)
