@@ -1,6 +1,8 @@
 import uuid
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from project_raw import create_graph
@@ -27,16 +29,15 @@ app.add_middleware(
 # Pydantic models define exactly what shape of JSON this API expects and returns.
 # FastAPI uses these to auto-validate incoming requests and auto-generate docs.
 
-#  this will be the input
 class StartSessionRequest(BaseModel):
     company_name: str
     role: str
 
-#  ouptut thread id which is going intot he chat request
+
 class StartSessionResponse(BaseModel):
     thread_id: str
 
-#  now the user_input and thread id will be feeded in the chat request
+
 class ChatRequest(BaseModel):
     thread_id: str
     user_input: str
@@ -47,6 +48,16 @@ class ChatResponse(BaseModel):
     classifier: str
 
 
+# --- frontend ---
+# serves the chat UI at the root URL, and any other files placed in /static
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("static/index.html")
+
+
 # --- endpoints ---
 
 @app.get("/health")
@@ -55,23 +66,13 @@ def health_check():
        that ping this URL to check if your service is alive."""
     return {"status": "ok"}
 
-#  in post requests we write repsonse classes inside the function there is request
 
-"""payload: StartSessionRequest (in the function signature) tells FastAPI: 
-"validate the incoming JSON body against this shape, and give it to me as payload." 
-This is the input.
-response_model =  StartSessionResponse (in the decorator) tells FastAPI: 
-"whatever I return from this function, validate/serialize it against 
-this shape before sending it back." This is the output.
-"""
-
-@app.post("/session", response_model=StartSessionResponse)  # ← OUTPUT shape (decorator)
-def start_session(payload: StartSessionRequest):  # ← INPUT shape (function parameter)
+@app.post("/session", response_model=StartSessionResponse)
+def start_session(payload: StartSessionRequest):
     """Creates a new conversation session for a given company + role.
        Call this ONCE at the start of a user's conversation."""
-#   it will take input as per the defination of the class then generating a thread id
 
-    thread_id = str(uuid.uuid4()) # this will generate stread id
+    thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
 
     # update_state seeds the checkpoint with company_name/role WITHOUT running
@@ -89,12 +90,10 @@ def start_session(payload: StartSessionRequest):  # ← INPUT shape (function pa
             "candidate_questions": {},
         },
     )
-   # after the updation of the graph function 
-#    we get to return the session response which is thread id
+
     return StartSessionResponse(thread_id=thread_id)
 
-#  response in chat
-#  we have to feed thread id
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest):
     """Sends one user message into an existing session and returns the answer."""
@@ -119,16 +118,7 @@ def chat(payload: ChatRequest):
         classifier=result["classifier"],
     )
 
-@app.get("/")
-def root():
-    return {"message": "AI Interview Prep Coach API is running. See /docs for usage."}
 
-#  dont need reload , render will handle it by the PORT
 if __name__ == "__main__":
     import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
-
-
-# https://ai-interview-prep-production-1.onrender.com/docs
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

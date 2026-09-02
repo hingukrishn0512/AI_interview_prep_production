@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Interview Prep Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12141c;
+    --panel: #1b1e2a;
+    --input-bg: #232739;
+    --text: #e8e6df;
+    --muted: #8a8fa3;
+    --accent: #e8a33d;
+    --accent-dim: #b97f2e;
+    --hairline: rgba(232, 230, 223, 0.1);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 640px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  header h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    font-size: 22px;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  #session-badge {
+    display: none;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--accent);
+  }
+
+  /* --- Setup screen --- */
+
+  #setup {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px;
+    gap: 18px;
+  }
+
+  #setup .lede {
+    font-family: 'Source Serif 4', serif;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text);
+    max-width: 46ch;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .field input {
+    background: var(--input-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14.5px;
+  }
+
+  .field input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #1b1400;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 18px;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button.primary:hover { background: var(--accent-dim); }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #setup-error {
+    color: #e88a5f;
+    font-size: 13px;
+    display: none;
+  }
+
+  /* --- Chat screen --- */
+
+  #chat-screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg {
+    max-width: 84%;
+    line-height: 1.55;
+    font-size: 14.5px;
+    white-space: pre-wrap;
+  }
+
+  .msg.ai {
+    align-self: flex-start;
+    color: var(--text);
+  }
+
+  .msg.ai .tag {
+    display: block;
+    color: var(--accent);
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .msg.user {
+    align-self: flex-end;
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 10px 10px 2px 10px;
+    padding: 10px 14px;
+  }
+
+  .msg.typing {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  #composer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--hairline);
+  }
+
+  #composer input {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14.5px;
+  }
+
+  #composer input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  #composer button {
+    background: var(--accent);
+    color: #1b1400;
+    border: none;
+    border-radius: 8px;
+    padding: 0 18px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  #composer button:hover { background: var(--accent-dim); }
+  #composer button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>AI Interview Prep Coach</h1>
+    <p>Practice questions, company research, and resume gap checks — one conversation.</p>
+    <div id="session-badge"></div>
+  </header>
+
+  <section id="setup">
+    <p class="lede">Tell me who you're preparing for, and I'll tailor everything to that role.</p>
+
+    <div class="field">
+      <label for="company">Company</label>
+      <input id="company" type="text" placeholder="e.g. Google" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="role">Role</label>
+      <input id="role" type="text" placeholder="e.g. Machine Learning Engineer Intern" autocomplete="off">
+    </div>
+
+    <button class="primary" id="start-btn">Start session</button>
+    <p id="setup-error"></p>
+  </section>
+
+  <section id="chat-screen">
+    <div id="messages"></div>
+    <div id="composer">
+      <input id="user-input" type="text" placeholder="Ask for a DSA question, behavioral prep, company research..." autocomplete="off">
+      <button id="send-btn">Send</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  // Same-origin deployment: FastAPI serves this file, so relative paths work
+  // both locally and once deployed on Render.
+  const API_BASE = "";
+
+  let threadId = null;
+
+  const setupEl = document.getElementById("setup");
+  const chatScreenEl = document.getElementById("chat-screen");
+  const sessionBadge = document.getElementById("session-badge");
+  const messagesEl = document.getElementById("messages");
+  const setupError = document.getElementById("setup-error");
+
+  document.getElementById("start-btn").addEventListener("click", startSession);
+  document.getElementById("send-btn").addEventListener("click", sendMessage);
+  document.getElementById("user-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  async function startSession() {
+    const company = document.getElementById("company").value.trim();
+    const role = document.getElementById("role").value.trim();
+
+    if (!company || !role) {
+      setupError.textContent = "Please fill in both fields.";
+      setupError.style.display = "block";
+      return;
+    }
+
+    const startBtn = document.getElementById("start-btn");
+    startBtn.disabled = true;
+    startBtn.textContent = "Starting...";
+
+    try {
+      const res = await fetch(`${API_BASE}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_name: company, role: role }),
+      });
+
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+      const data = await res.json();
+      threadId = data.thread_id;
+
+      sessionBadge.textContent = `${company} · ${role}`;
+      sessionBadge.style.display = "block";
+
+      setupEl.style.display = "none";
+      chatScreenEl.style.display = "flex";
+
+      addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or a resume gap analysis.");
+      document.getElementById("user-input").focus();
+    } catch (err) {
+      setupError.textContent = "Couldn't start a session. Please try again.";
+      setupError.style.display = "block";
+      startBtn.disabled = false;
+      startBtn.textContent = "Start session";
+    }
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("user-input");
+    const text = input.value.trim();
+    if (!text || !threadId) return;
+
+    addMessage("user", text);
+    input.value = "";
+
+    const sendBtn = document.getElementById("send-btn");
+    sendBtn.disabled = true;
+    const typingEl = addMessage("ai", "Thinking...", true);
+
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thread_id: threadId, user_input: text }),
+      });
+
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+      const data = await res.json();
+      typingEl.remove();
+      addMessage("ai", data.final_result);
+    } catch (err) {
+      typingEl.remove();
+      addMessage("ai", "Something went wrong reaching the server. Please try again.");
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  function addMessage(role, text, isTyping = false) {
+    const el = document.createElement("div");
+    el.className = `msg ${role}` + (isTyping ? " typing" : "");
+
+    if (role === "ai") {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = "Coach";
+      el.appendChild(tag);
+      el.appendChild(document.createTextNode(text));
+    } else {
+      el.textContent = text;
+    }
+
+    messagesEl.appendChild(el);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return el;
+  }
+</script>
+
+</body>
+</html>
