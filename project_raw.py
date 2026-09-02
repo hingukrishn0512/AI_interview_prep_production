@@ -214,81 +214,68 @@ def company_reasearch_node(state: state) -> dict:
     """search for a company's interview process, culture, recent news"""
     company_name = state['company_name']
     role = state['role']
-    user_message = state['user_input']
- 
+
     search_query = f"{company_name} {role} interview process culture recent news"
     search_results = search_tool.invoke(search_query)
- 
+
     prompt = f"""You are a career coach helping a candidate prepare for an interview.
- 
-    The candidate asked a SPECIFIC question below. Answer THAT question directly,
-    using the search results as your source of truth.
- 
+
+    Use the search results below to summarize what the candidate should know about the
+    company's interview process, work culture, and any recent news relevant to the role.
+
     CRITICAL INSTRUCTIONS:
-    1. Read the candidate's question carefully and answer exactly what they asked -
-       do not default to covering interview process, culture, AND recent news every
-       time. If they only asked about one of these, only cover that one.
-    2. Base your answer ONLY on the search results provided below. Do not invent
-       details that aren't supported by them.
-    3. If the search results don't cover what they asked, say so honestly instead
-       of guessing or padding the answer with unrelated information.
-    4. Match your response length to the question. A simple question gets a short,
-       direct answer. Only go longer if the question genuinely needs it (e.g. "tell
-       me everything you can about their interview process").
-    5. Do not add headers or sections unless the answer naturally has multiple
-       distinct parts that benefit from separation.
- 
+    1. Base your answer ONLY on the search results provided below. Do not invent details
+       that aren't supported by them.
+    2. If the search results don't cover something (e.g. interview process specifics),
+       say so honestly instead of guessing.
+    3. Organize the answer into short sections: Interview Process, Culture, Recent News.
+    4. Keep it concise and practical, focused on what actually helps interview prep.
+
     company:
     {company_name}
- 
+
     role:
     {role}
- 
-    candidate's question:
-    {user_message}
- 
+
     search results:
     {search_results}
     """
     response = llm.invoke(prompt)
     return {"final_result": response.content.strip()}
- 
 
 
 def resume_gap_node(state: state) -> dict:
-    """identifies the gap in the resumes, scoped to what was actually asked"""
+    """identifies the gap in the resumes"""
     role = state['role']
     company_name = state['company_name']
     user_message = state['user_input']
- 
+
     query = f"skills, experience, and projects relevant to a {role} position"
     retrieved_docs = resume_retriever.invoke(query)
     resume_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
- 
+
     prompt = f"""You are a career coach helping a candidate prepare for a job interview.
- 
-    The candidate asked a SPECIFIC question below. Answer THAT question directly,
-    using their resume content as your source of truth.
- 
+
+    Your task is to compare the candidate's resume against what is typically expected
+    for the given role, and point out gaps they should be ready to address or brush up on.
+
     CRITICAL INSTRUCTIONS:
-    1. Read the candidate's actual question first. If they asked something narrow
-       (e.g. "am I strong in SQL?" or "what's my biggest weakness for this role?"),
-       answer that narrow question - do not default to a full gap analysis covering
-       everything unless they actually asked for a full review.
-    2. Base your analysis ONLY on the resume content provided below. Do not invent
-       skills, projects, or experience that aren't actually present in the resume.
-    3. Be specific: name exact skills or experience areas, not vague statements like
-       "needs more experience".
-    4. Keep the tone encouraging and constructive, like a mentor, not harshly critical.
-    5. Match your response length to the question asked. A one-line question deserves
-       a focused answer, not a padded essay with sections they didn't ask for.
- 
+    1. Base your analysis ONLY on the resume content provided below. Do not invent skills,
+       projects, or experience that aren't actually present in the resume.
+    2. Be specific: name the exact skills or experience areas that are missing or weak for
+       this role, not vague statements like "needs more experience".
+    3. Also mention what IS already strong on the resume for this role, so the answer isn't
+       purely critical.
+    4. Keep the tone encouraging and constructive, like a mentor helping them prepare, not
+       harshly critical.
+    5. Keep the answer focused and practical, ideally under 200 words.
+
     role:
     {role} at {company_name}
- 
+
     resume context:
     {resume_context}
- 
+
     candidate's question:
     {user_message}
     """
