@@ -133,11 +133,14 @@ Categories:
   general_chat instead). Do NOT use "dsa" for requests about study resources,
   links, general advice, or tips about DSA either — those are general_chat too.
 - behavioral: The candidate gives a DIRECT, explicit command to generate a
-  behavioral/HR-style question right now (e.g. "ask me a behavioral question",
-  "give me an HR question", "quiz me on teamwork"). Do NOT use "behavioral" for a
-  candidate merely musing, worrying, or stating an intention about behavioral/HR
-  prep without directly commanding a question right now (see rule below — that's
-  general_chat instead, so the coach can confirm first).
+  behavioral/HR-style question right now, AND either names a specific theme/focus
+  (e.g. teamwork, conflict, leadership, handling failure, prioritization) or is
+  clearly continuing a theme already established earlier in the conversation. A
+  direct command with NO theme at all (e.g. "give me an hr question", "i would
+  like to have hr questions", "ask me a behavioral question") is NOT enough by
+  itself — see the rule below, that's general_chat instead so the coach can ask
+  what theme they want. Do NOT use "behavioral" for a candidate merely musing,
+  worrying, or stating an intention about behavioral/HR prep either.
 - company_research: The candidate is asking about a specific company's interview
   process, culture, values, or recent news relevant to interviewing there.
 - resume_gap: The candidate is asking what they should brush up on, or how their
@@ -170,12 +173,15 @@ context, not in isolation:
   to ask which topic and difficulty first, not guess one for them. Example: "i
   would like to have a dsa question" with no prior topic in the conversation ->
   general_chat, NOT dsa.
-- VAGUE BEHAVIORAL INTENT: if the candidate is thinking out loud, expressing worry,
-  or stating a general intention about needing to practice behavioral/HR
-  questions — WITHOUT directly commanding one right now — that is general_chat, so
-  the coach can confirm they want one and ask about a theme, rather than assuming
-  and generating one unprompted. Example: "i think i have to practice the hr round
-  questions" -> general_chat, NOT behavioral, even though it mentions "hr".
+- BARE OR VAGUE BEHAVIORAL REQUESTS: if the candidate wants a behavioral/HR
+  question but names NO theme — whether it's a direct command with no theme
+  ("give me an hr question", "i would like to have hr questions", "ask me a
+  behavioral question") or a vague musing/worry about needing practice ("i think
+  i have to practice the hr round questions") — and no theme was already
+  established earlier in the conversation to continue, that is general_chat, so
+  the coach can ask what theme they'd like (or offer to pick one) before
+  generating anything. Only route to "behavioral" once a theme is given or
+  clearly implied by context.
 - AFFIRMATIVE FOLLOW-THROUGH: if the coach's last message (see history above)
   offered to generate a question and asked for confirmation or missing details
   (topic/difficulty/theme), and the candidate's new message supplies that
@@ -196,7 +202,9 @@ Examples:
 "what's it like interviewing at Google?" -> company_research
 "what should I review before my SWE interview?" -> resume_gap
 "ask me a question about handling conflict" -> behavioral
-"give me an hr question" -> behavioral
+"give me an hr question about a time you failed" -> behavioral
+"give me an hr question" (no theme named) -> general_chat
+"i would like to have hr questions" (no theme named) -> general_chat
 "i think i have to practice the hr round questions" -> general_chat
 "i'm nervous about the behavioral round" -> general_chat
 "which question did I ask you at the very beginning?" -> general_chat
@@ -577,12 +585,14 @@ yourself. Just ask, in one short friendly line, which topic they'd like — arra
 hashing, trees & graphs, or dynamic programming — and whether they want it easy,
 medium, or hard. Nothing else.
 
-If the candidate is musing, worrying, or stating an intention about needing to
-practice behavioral/HR questions WITHOUT directly commanding one right now, do NOT
-generate a question yourself. Acknowledge what they said in one short line, then
-ask if they'd like a behavioral question now and whether there's a particular
-theme (teamwork, conflict, ownership, handling failure, etc.) they want to focus
-on — or say you'll pick one for them if they don't have a preference.
+If the candidate wants a behavioral/HR question but hasn't named a theme —
+whether that's a direct request with no theme ("give me an hr question", "i would
+like to have hr questions") or a musing/worry about needing practice ("i think i
+have to practice the hr round questions") — do NOT generate a question yourself.
+Acknowledge what they said in one short line, then ask whether there's a
+particular theme (teamwork, conflict, ownership, handling failure, prioritization,
+etc.) they want to focus on — or say you'll pick one for them if they don't have a
+preference.
 
 Read the room otherwise:
 - If they're greeting you for the first time, or clearly don't know what you can do,
