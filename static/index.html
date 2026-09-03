@@ -20,8 +20,15 @@
 
   * { box-sizing: border-box; }
 
-  body {
+  html, body {
+    height: 100%;
     margin: 0;
+    overscroll-behavior: none;
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', sans-serif;
@@ -40,7 +47,7 @@
   }
 
   header {
-    padding: 18px 20px;
+    padding: calc(18px + env(safe-area-inset-top)) 20px 18px;
     border-bottom: 1px solid var(--hairline);
     display: flex;
     align-items: center;
@@ -265,7 +272,7 @@
   #composer {
     display: flex;
     gap: 10px;
-    padding: 14px 20px 18px;
+    padding: 14px 20px calc(18px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--hairline);
     flex-shrink: 0;
     align-items: flex-end;
@@ -366,6 +373,23 @@
     "What should I brush up on in my resume?",
   ];
 
+  // iOS/Android will forcibly scroll the page to keep a focused input above
+  // the on-screen keyboard, even though body/html are pinned with
+  // position: fixed + overflow: hidden. That native scroll can leave the
+  // header (and everything else) shifted out of view. Snapping scroll
+  // back to (0, 0) whenever the visual viewport changes (keyboard open/
+  // close, address bar show/hide) undoes that shift.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      window.scrollTo(0, 0);
+    });
+  }
+  window.addEventListener("scroll", () => {
+    if (window.scrollY !== 0 || window.scrollX !== 0) {
+      window.scrollTo(0, 0);
+    }
+  });
+
   document.getElementById("start-btn").addEventListener("click", startSession);
   document.getElementById("send-btn").addEventListener("click", () => sendMessage());
   resetBtn.addEventListener("click", resetSession);
@@ -419,7 +443,10 @@
 
       addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or a resume gap analysis.");
       renderChips();
-      inputEl.focus();
+
+      // Don't auto-focus the composer here. Focusing immediately pops the
+      // mobile keyboard open mid-transition, which is what was pushing the
+      // header out of view. Let the user tap the input when they're ready.
     } catch (err) {
       setupError.textContent = "Couldn't start a session. Please try again.";
       setupError.style.display = "block";
@@ -483,7 +510,6 @@
       addMessage("ai", "Something went wrong reaching the server. Please try again.");
     } finally {
       sendBtn.disabled = false;
-      inputEl.focus();
     }
   }
 

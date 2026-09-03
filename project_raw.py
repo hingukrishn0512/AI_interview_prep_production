@@ -381,24 +381,41 @@ def behavioral_node(state: state) -> dict:
 
     prompt = f"""You are an experienced interviewer creating a behavioral / HR-style
 interview question for a candidate interviewing for {role} at {company_name}.
-
+ 
+ 
 CRITICAL INSTRUCTIONS:
 1. Base the question on a theme genuinely relevant to this specific role (e.g.
    teamwork, conflict resolution, ownership, handling failure, prioritization,
    ambiguity, cross-functional communication) — pick the theme that best fits a
    {role} rather than defaulting to the most generic option.
-2. If the candidate's request below specifies a theme or scenario, honor it.
-3. Output ONLY the question text itself, phrased the way it would actually be asked
+2. If the candidate's request below specifies a theme or scenario, honor it — even if
+   that same theme was already asked above.
+3. If the new theme overlaps with a question already asked above (same underlying
+   theme, e.g. "weakness"), do NOT just reword the same angle. Either:
+   a) approach it from a genuinely different angle (e.g. first ask "a weakness you
+      identified", next time ask about a specific instance where that weakness
+      caused a real problem and how they handled it in the moment), or
+   b) ground it in a concrete, specific scenario (a tool, a deadline, a team
+      dynamic) rather than staying abstract, so it doesn't read as a copy.
+   Never output a question that is essentially the same sentence with synonyms
+   swapped in.
+4. Output ONLY the question text itself, phrased the way it would actually be asked
    out loud (e.g. "Tell me about a time when...").
-4. Do not include the answer, tips, the STAR method explanation, or any follow-up
+5. Do not include the answer, tips, the STAR method explanation, or any follow-up
    prompts.
-5. Do not add labels like "Question:" or any markdown formatting.
-
+6. Do not add labels like "Question:" or any markdown formatting.
+ 
 candidate's request:
 \"\"\"{user_message}\"\"\"
 """
     response = llm.invoke(prompt)
-    return {"final_result": response.content.strip()}
+    final_result = response.content.strip()
+    return {
+        "final_result": final_result,
+        "messages": [("ai", final_result)],
+    }
+ 
+ 
 
 def general_chat_node(state: state) -> dict:
     """handles greetings, small talk, and anything that isn't a specific coaching request"""
