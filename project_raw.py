@@ -35,6 +35,29 @@ def merge_dict(left, right):
     return merged
 
 
+def format_history(state, n: int = 8) -> str:
+    """Render the last n turns of conversation (candidate + coach) as plain
+    text, for prompts that need to reason about what's already been said.
+    Without this, every node only ever sees the current message in
+    isolation — which is why follow-ups, corrections, and "what did I ask
+    earlier" style questions previously broke."""
+    past_messages = state.get('messages', []) or []
+    turns = []
+    for m in past_messages:
+        if isinstance(m, tuple):
+            speaker, content = m[0], m[1]
+        else:
+            speaker = getattr(m, "type", None)
+            content = getattr(m, "content", None)
+        if not content:
+            continue
+        label = "Candidate" if speaker in ("human", "user") else "Coach"
+        turns.append(f"{label}: {content}")
+    if not turns:
+        return "(no prior conversation yet — this is the first message)"
+    return "\n".join(turns[-n:])
+
+
 class state(TypedDict):
     user_input: str
     messages: Annotated[list, add_messages]
@@ -68,28 +91,48 @@ resume_retriever = build_RAG(
 def classifier_node(state: state) -> dict:
     """looks at the user's input and decides which of the 5 branches to route to"""
     user_message = state['user_input']
+    history = format_history(state)
 
     prompt = f"""You are a query classifier for an AI interview prep coach.
 
-Read the candidate's message and classify it into EXACTLY ONE of the following
-categories. Respond with only the category name in lowercase, with no punctuation,
-quotes, explanation, or extra words.
+Recent conversation so far (most recent last):
+{history}
+
+Read the candidate's newest message below and classify it into EXACTLY ONE of the
+following categories. Respond with only the category name in lowercase, with no
+punctuation, quotes, explanation, or extra words.
 
 Categories:
-- dsa: The user wants you to GENERATE a brand-new coding/DSA practice question for
-  them to solve right now (e.g. "give me a question", "ask me something on trees",
-  "give me a harder one", "another one please"). Do NOT use "dsa" for requests about
-  study resources, links, general advice, or tips about DSA — route those to
-  "general_chat" instead.
-- behavioral: The user wants a behavioral or HR-style interview question generated.
-- company_research: The user is asking about a specific company's interview process,
-  culture, values, or recent news relevant to interviewing there.
-- resume_gap: The user is asking what they should brush up on, or how their resume
-  compares to what's expected for the target role.
+- dsa: The candidate wants you to GENERATE a brand-new coding/DSA practice question
+  for them to solve right now (e.g. "give me a question", "ask me something on
+  trees", "give me a harder one", "another one please"). Do NOT use "dsa" for
+  requests about study resources, links, general advice, or tips about DSA — route
+  those to "general_chat" instead.
+- behavioral: The candidate wants a NEW behavioral or HR-style interview question
+  generated right now.
+- company_research: The candidate is asking about a specific company's interview
+  process, culture, values, or recent news relevant to interviewing there.
+- resume_gap: The candidate is asking what they should brush up on, or how their
+  resume compares to what's expected for the target role.
 - general_chat: Greetings, small talk, thanks, farewells, requests for study
-  resources/links/advice, follow-up questions about a question already given (e.g.
-  "can you explain that answer"), or anything that doesn't clearly fit the categories
-  above. When in doubt, choose general_chat rather than guessing.
+  resources/links/advice, follow-up questions about something already discussed
+  (e.g. "can you explain that answer", "which question did I ask earlier",
+  "what did you just say"), corrections or clarifications about the current
+  exchange (e.g. "no, I meant X", "that's not what I asked"), or anything that
+  doesn't clearly fit the categories above. When in doubt, choose general_chat
+  rather than guessing.
+
+IMPORTANT — use the conversation history above to read the newest message in
+context, not in isolation:
+- A short correction or clarification about what the candidate just asked (e.g.
+  "no it was about hr question", "I meant something else") is almost always
+  general_chat, even if it happens to mention a topic like "hr" or "dsa" —
+  the candidate is fixing a misunderstanding, not requesting a brand-new question.
+  Only classify it into that topic's category if they are clearly asking for a
+  fresh, new question on that topic now.
+- A question referring back to something earlier in the conversation ("what did I
+  ask you before", "go back to my last question") is general_chat, not a request
+  to generate new content.
 
 Examples:
 "give me a hard DSA question" -> dsa
@@ -101,8 +144,11 @@ Examples:
 "what's it like interviewing at Google?" -> company_research
 "what should I review before my SWE interview?" -> resume_gap
 "ask me a question about handling conflict" -> behavioral
+"which question did I ask you at the very beginning?" -> general_chat
+"no, it was about the hr question" (correcting the coach's last reply) -> general_chat
+"actually can you give me a fresh hr question instead" -> behavioral
 
-Candidate message:
+Candidate's newest message:
 \"\"\"{user_message}\"\"\"
 
 Category (one word, lowercase, nothing else):"""
@@ -114,7 +160,10 @@ Category (one word, lowercase, nothing else):"""
     if category not in valid_categories:
         category = "general_chat"
 
-    return {"classifier": category}
+    return {
+        "classifier": category,
+        "messages": [("human", user_message)],
+    }
 
 
 def reviwer_node(state: state) -> dict:
@@ -285,7 +334,10 @@ Chosen topic key:"""
     chosen_topic = response.content.strip().split("\n")[0].strip().lower()
     final_question = candidates.get(chosen_topic, list(candidates.values())[0])
 
-    return {"final_result": final_question}
+    return {
+        "final_result": final_question,
+        "messages": [("ai", final_question)],
+    }
 
 
 def company_reasearch_node(state: state) -> dict:
@@ -326,7 +378,11 @@ search results:
 {search_results}
 """
     response = llm.invoke(prompt)
-    return {"final_result": response.content.strip()}
+    final_result = response.content.strip()
+    return {
+        "final_result": final_result,
+        "messages": [("ai", final_result)],
+    }
 
 
 def resume_gap_node(state: state) -> dict:
@@ -370,7 +426,11 @@ candidate's question:
 \"\"\"{user_message}\"\"\"
 """
     response = llm.invoke(prompt)
-    return {"final_result": response.content.strip()}
+    final_result = response.content.strip()
+    return {
+        "final_result": final_result,
+        "messages": [("ai", final_result)],
+    }
 
 
 def behavioral_node(state: state) -> dict:
@@ -381,30 +441,23 @@ def behavioral_node(state: state) -> dict:
 
     prompt = f"""You are an experienced interviewer creating a behavioral / HR-style
 interview question for a candidate interviewing for {role} at {company_name}.
- 
- 
+
 CRITICAL INSTRUCTIONS:
 1. Base the question on a theme genuinely relevant to this specific role (e.g.
    teamwork, conflict resolution, ownership, handling failure, prioritization,
    ambiguity, cross-functional communication) — pick the theme that best fits a
    {role} rather than defaulting to the most generic option.
-2. If the candidate's request below specifies a theme or scenario, honor it — even if
-   that same theme was already asked above.
-3. If the new theme overlaps with a question already asked above (same underlying
-   theme, e.g. "weakness"), do NOT just reword the same angle. Either:
-   a) approach it from a genuinely different angle (e.g. first ask "a weakness you
-      identified", next time ask about a specific instance where that weakness
-      caused a real problem and how they handled it in the moment), or
-   b) ground it in a concrete, specific scenario (a tool, a deadline, a team
-      dynamic) rather than staying abstract, so it doesn't read as a copy.
-   Never output a question that is essentially the same sentence with synonyms
-   swapped in.
+2. If the candidate's request below specifies a theme, honor it.
+3. Ground the question in a concrete, specific scenario (a tool, a deadline, a team
+   dynamic, a decision under pressure) rather than staying abstract — avoid the most
+   generic phrasing for the theme (e.g. plain "tell me about a weakness") in favor of
+   a sharper, more particular version of the same idea.
 4. Output ONLY the question text itself, phrased the way it would actually be asked
    out loud (e.g. "Tell me about a time when...").
 5. Do not include the answer, tips, the STAR method explanation, or any follow-up
    prompts.
 6. Do not add labels like "Question:" or any markdown formatting.
- 
+
 candidate's request:
 \"\"\"{user_message}\"\"\"
 """
@@ -414,24 +467,39 @@ candidate's request:
         "final_result": final_result,
         "messages": [("ai", final_result)],
     }
- 
- 
 
 def general_chat_node(state: state) -> dict:
     """handles greetings, small talk, and anything that isn't a specific coaching request"""
-    user_message = state['user_input']
     role = state.get('role', '')
     company_name = state.get('company_name', '')
+    # Includes the candidate's newest message as the final line, since
+    # classifier_node already records it before routing here.
+    history = format_history(state)
+
     prompt = f"""You are a friendly, sharp AI interview prep coach chatting casually
 with a candidate preparing for a {role} role at {company_name}.
 
-The candidate just said:
-\"\"\"{user_message}\"\"\"
+Actual conversation so far, in order (most recent last — the last "Candidate" line
+is the message you're responding to right now):
+{history}
 
 Respond naturally and briefly, like a real person texting back — never like a
 scripted assistant reciting a feature list.
 
-Read the room:
+CRITICAL — grounding in real history:
+If the candidate asks about anything from earlier in the conversation (e.g. "what
+did I ask first", "what was your last answer", "which question did you give me
+before"), answer using ONLY what actually appears in the conversation above. Quote
+or accurately summarize the real prior message — never invent, guess, or restate
+the candidate's current question back to them as if it were the answer. If the
+history above genuinely doesn't contain what they're asking about, say so honestly
+instead of making something up.
+
+If the candidate's message is a correction or clarification (e.g. "no, I meant X",
+"that's not what I asked"), acknowledge the correction directly and address what
+they actually meant — don't ignore it and go generate something unrelated.
+
+Read the room otherwise:
 - If they're greeting you for the first time, or clearly don't know what you can do,
   you may briefly mention you can help with DSA questions, behavioral questions,
   company research, or resume gap analysis — but only ONCE in this conversation, and
