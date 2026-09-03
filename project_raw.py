@@ -125,23 +125,29 @@ punctuation, quotes, explanation, or extra words.
 
 Categories:
 - dsa: The candidate wants you to GENERATE a brand-new coding/DSA practice question
-  for them to solve right now (e.g. "give me a question", "ask me something on
-  trees", "give me a harder one", "another one please"). Do NOT use "dsa" for
-  requests about study resources, links, general advice, or tips about DSA — route
-  those to "general_chat" instead.
-- behavioral: The candidate wants a NEW behavioral or HR-style interview question
-  generated right now.
+  right now, AND names a specific topic (arrays/hashing, trees/graphs, or dynamic
+  programming) — either in this message, or by clearly continuing a topic already
+  established earlier in the conversation (e.g. "give me a harder one" right after
+  a trees/graphs question was just given). Do NOT use "dsa" for a bare request with
+  no topic and no established topic to continue (see rule below — that's
+  general_chat instead). Do NOT use "dsa" for requests about study resources,
+  links, general advice, or tips about DSA either — those are general_chat too.
+- behavioral: The candidate gives a DIRECT, explicit command to generate a
+  behavioral/HR-style question right now (e.g. "ask me a behavioral question",
+  "give me an HR question", "quiz me on teamwork"). Do NOT use "behavioral" for a
+  candidate merely musing, worrying, or stating an intention about behavioral/HR
+  prep without directly commanding a question right now (see rule below — that's
+  general_chat instead, so the coach can confirm first).
 - company_research: The candidate is asking about a specific company's interview
   process, culture, values, or recent news relevant to interviewing there.
 - resume_gap: The candidate is asking what they should brush up on, or how their
   resume compares to what's expected for the target role.
 - general_chat: Greetings, small talk, thanks, farewells, requests for study
-  resources/links/advice, follow-up questions about something already discussed
-  (e.g. "can you explain that answer", "which question did I ask earlier",
-  "what did you just say"), corrections or clarifications about the current
-  exchange (e.g. "no, I meant X", "that's not what I asked"), or anything that
-  doesn't clearly fit the categories above. When in doubt, choose general_chat
-  rather than guessing.
+  resources/links/advice, follow-up questions about something already discussed,
+  corrections or clarifications, bare/underspecified requests that need a
+  clarifying question first (see rules below), musings or statements of intent
+  that aren't direct commands, or anything that doesn't clearly fit the categories
+  above. When in doubt, choose general_chat rather than guessing.
 
 IMPORTANT — use the conversation history above to read the newest message in
 context, not in isolation:
@@ -149,8 +155,6 @@ context, not in isolation:
   "no it was about hr question", "I meant something else") is almost always
   general_chat, even if it happens to mention a topic like "hr" or "dsa" —
   the candidate is fixing a misunderstanding, not requesting a brand-new question.
-  Only classify it into that topic's category if they are clearly asking for a
-  fresh, new question on that topic now.
 - A question referring back to something earlier in the conversation ("what did I
   ask you before", "go back to my last question") is general_chat, not a request
   to generate new content.
@@ -158,26 +162,50 @@ context, not in isolation:
   promised (e.g. "what about the hr question I told you to ask", "did you ever
   give me that DSA question", "weren't you going to ask me something on trees")
   is general_chat, NOT a request to generate a new one — even though it names a
-  topic like "hr" or "dsa". The candidate wants to recall or confirm something
-  already in the conversation, not receive a fresh question. Only route to that
-  topic's category if the phrasing is a clear, direct ask for something new
-  right now (e.g. "ask me one now", "give me another").
+  topic like "hr" or "dsa". Only route to that topic's category if the phrasing is
+  a clear, direct ask for something new right now (e.g. "ask me one now").
+- BARE DSA REQUESTS: if the candidate asks for a DSA question WITHOUT naming a
+  topic (arrays/hashing, trees/graphs, dp), and no topic was already established
+  earlier in the conversation to continue, that is general_chat — the coach needs
+  to ask which topic and difficulty first, not guess one for them. Example: "i
+  would like to have a dsa question" with no prior topic in the conversation ->
+  general_chat, NOT dsa.
+- VAGUE BEHAVIORAL INTENT: if the candidate is thinking out loud, expressing worry,
+  or stating a general intention about needing to practice behavioral/HR
+  questions — WITHOUT directly commanding one right now — that is general_chat, so
+  the coach can confirm they want one and ask about a theme, rather than assuming
+  and generating one unprompted. Example: "i think i have to practice the hr round
+  questions" -> general_chat, NOT behavioral, even though it mentions "hr".
+- AFFIRMATIVE FOLLOW-THROUGH: if the coach's last message (see history above)
+  offered to generate a question and asked for confirmation or missing details
+  (topic/difficulty/theme), and the candidate's new message supplies that
+  confirmation or those details (e.g. "yes", "sure, arrays please", "medium",
+  "go ahead, something on teamwork"), treat that as the direct request now and
+  route to the matching category (dsa or behavioral) — don't send it back to
+  general_chat again.
 
 Examples:
-"give me a hard DSA question" -> dsa
+"give me a question on arrays" -> dsa
 "ask me something on graphs" -> dsa
-"give me an easier one" -> dsa
+"give me an easier one" (right after a dsa question was just given) -> dsa
+"i would like to have a dsa question" (no topic named, none established yet) -> general_chat
+"give me a hard DSA question" (no topic named) -> general_chat
 "give me a resource to learn DSA" -> general_chat
 "how should I prepare for DSA rounds in general?" -> general_chat
 "any tips for arrays and hashing?" -> general_chat
 "what's it like interviewing at Google?" -> company_research
 "what should I review before my SWE interview?" -> resume_gap
 "ask me a question about handling conflict" -> behavioral
+"give me an hr question" -> behavioral
+"i think i have to practice the hr round questions" -> general_chat
+"i'm nervous about the behavioral round" -> general_chat
 "which question did I ask you at the very beginning?" -> general_chat
 "no, it was about the hr question" (correcting the coach's last reply) -> general_chat
 "what about the hr question i told you to ask in the beginning" -> general_chat
 "did you already give me a DSA question?" -> general_chat
 "actually can you give me a fresh hr question instead" -> behavioral
+"sure, arrays please, medium" (right after coach asked which topic/difficulty) -> dsa
+"yes go ahead, something on teamwork" (right after coach asked if they want a behavioral question) -> behavioral
 
 Candidate's newest message:
 \"\"\"{user_message}\"\"\"
@@ -542,6 +570,19 @@ give me a DSA question"):
   generate a new question yourself here; that decision belongs to the candidate,
   and jumping straight to content when they were just checking in is exactly the
   kind of unrequested action to avoid.
+
+If the candidate asked for a DSA question WITHOUT naming a topic (and no topic was
+already established earlier to continue), do NOT generate or describe a question
+yourself. Just ask, in one short friendly line, which topic they'd like — arrays &
+hashing, trees & graphs, or dynamic programming — and whether they want it easy,
+medium, or hard. Nothing else.
+
+If the candidate is musing, worrying, or stating an intention about needing to
+practice behavioral/HR questions WITHOUT directly commanding one right now, do NOT
+generate a question yourself. Acknowledge what they said in one short line, then
+ask if they'd like a behavioral question now and whether there's a particular
+theme (teamwork, conflict, ownership, handling failure, etc.) they want to focus
+on — or say you'll pick one for them if they don't have a preference.
 
 Read the room otherwise:
 - If they're greeting you for the first time, or clearly don't know what you can do,
