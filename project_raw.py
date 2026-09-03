@@ -35,12 +35,21 @@ def merge_dict(left, right):
     return merged
 
 
-def format_history(state, n: int = 8) -> str:
-    """Render the last n turns of conversation (candidate + coach) as plain
-    text, for prompts that need to reason about what's already been said.
-    Without this, every node only ever sees the current message in
-    isolation — which is why follow-ups, corrections, and "what did I ask
-    earlier" style questions previously broke."""
+def format_history(state, keep_head: int = 6, keep_tail: int = 20) -> str:
+    """Render the conversation history (candidate + coach) as plain text, for
+    prompts that need to reason about what's already been said. Without this,
+    every node only ever sees the current message in isolation — which is why
+    follow-ups, corrections, and "what did I ask earlier" style questions
+    previously broke.
+
+    By default the FULL transcript is included, not just a recent window —
+    a short window would make "what did I ask at the very beginning?" fail
+    again in any conversation longer than a few turns. If the transcript
+    gets long, the earliest `keep_head` turns and most recent `keep_tail`
+    turns are kept in full (so both "the beginning" and "just now" stay
+    answerable) and the middle is collapsed into a one-line note instead of
+    being dropped silently.
+    """
     past_messages = state.get('messages', []) or []
     turns = []
     for m in past_messages:
@@ -53,9 +62,21 @@ def format_history(state, n: int = 8) -> str:
             continue
         label = "Candidate" if speaker in ("human", "user") else "Coach"
         turns.append(f"{label}: {content}")
+
     if not turns:
         return "(no prior conversation yet — this is the first message)"
-    return "\n".join(turns[-n:])
+
+    if len(turns) <= keep_head + keep_tail:
+        return "\n".join(turns)
+
+    head = turns[:keep_head]
+    tail = turns[-keep_tail:]
+    omitted = len(turns) - keep_head - keep_tail
+    return "\n".join(
+        head
+        + [f"... [{omitted} earlier message(s) omitted for length] ..."]
+        + tail
+    )
 
 
 class state(TypedDict):
@@ -133,6 +154,14 @@ context, not in isolation:
 - A question referring back to something earlier in the conversation ("what did I
   ask you before", "go back to my last question") is general_chat, not a request
   to generate new content.
+- A candidate CHECKING IN on something they believe already happened or was
+  promised (e.g. "what about the hr question I told you to ask", "did you ever
+  give me that DSA question", "weren't you going to ask me something on trees")
+  is general_chat, NOT a request to generate a new one — even though it names a
+  topic like "hr" or "dsa". The candidate wants to recall or confirm something
+  already in the conversation, not receive a fresh question. Only route to that
+  topic's category if the phrasing is a clear, direct ask for something new
+  right now (e.g. "ask me one now", "give me another").
 
 Examples:
 "give me a hard DSA question" -> dsa
@@ -146,6 +175,8 @@ Examples:
 "ask me a question about handling conflict" -> behavioral
 "which question did I ask you at the very beginning?" -> general_chat
 "no, it was about the hr question" (correcting the coach's last reply) -> general_chat
+"what about the hr question i told you to ask in the beginning" -> general_chat
+"did you already give me a DSA question?" -> general_chat
 "actually can you give me a fresh hr question instead" -> behavioral
 
 Candidate's newest message:
@@ -498,6 +529,19 @@ instead of making something up.
 If the candidate's message is a correction or clarification (e.g. "no, I meant X",
 "that's not what I asked"), acknowledge the correction directly and address what
 they actually meant — don't ignore it and go generate something unrelated.
+
+If the candidate is CHECKING IN on something they believe already happened or was
+promised (e.g. "what about the hr question I told you to ask", "did you already
+give me a DSA question"):
+- If it's actually in the conversation above, point to it directly — quote or
+  closely paraphrase the real thing so they can find it, rather than just saying
+  "yes I did."
+- If it genuinely is NOT in the conversation above, say so plainly and ask a short
+  clarifying question about what they'd like next (e.g. "I don't see an HR
+  question in our chat yet — want me to give you one now?"). Do not silently
+  generate a new question yourself here; that decision belongs to the candidate,
+  and jumping straight to content when they were just checking in is exactly the
+  kind of unrequested action to avoid.
 
 Read the room otherwise:
 - If they're greeting you for the first time, or clearly don't know what you can do,
