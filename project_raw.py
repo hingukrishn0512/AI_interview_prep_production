@@ -1,4 +1,7 @@
 import os
+import json
+import time
+import logging
 from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
@@ -14,15 +17,67 @@ from light_embeddings import LightHFEmbeddings
 
 load_dotenv()
 
+logger = logging.getLogger("interview_coach")
+if not logger.handlers:
+    # Make sure something actually prints, even if the host app hasn't
+    # configured logging itself.
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
 # --- shared setup (loaded once when this module is imported) ---
 
 search_tool = TavilySearch(max_results=3)
 tools = [search_tool]
 
-llm =  ChatGroq(model="openai/gpt-oss-120b" , temperature=0.2)
+llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.2)
 llm_tools = llm.bind_tools(tools)
 
 embedings = LightHFEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+
+class RateLimitExceeded(Exception):
+    """Raised when the LLM provider keeps rate-limiting us after every retry
+    has been exhausted, so the API layer can turn this into a clean 503
+    instead of a generic 400."""
+
+
+def safe_llm_invoke(prompt, max_retries: int = 4, base_delay: float = 1.5):
+    """Wraps llm.invoke with exponential backoff + jitter.
+
+    This exists because a single DSA request fans out into three Groq calls
+    fired back-to-back (arrays/hashing, trees/graphs, dp), which is an easy
+    way to trip a provider-side 429 even when overall usage is low. Without
+    a retry here, one throttled call takes down the whole /chat request.
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return llm.invoke(prompt)
+        except Exception as e:
+            last_error = e
+            error_text = str(e).lower()
+            is_rate_limit = (
+                "429" in error_text
+                or "rate limit" in error_text
+                or "rate_limit" in error_text
+                or "too many requests" in error_text
+            )
+            if not is_rate_limit or attempt == max_retries - 1:
+                logger.error("LLM call failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
+                if is_rate_limit:
+                    raise RateLimitExceeded(str(e)) from e
+                raise
+            delay = base_delay * (2 ** attempt)
+            logger.warning(
+                "LLM call rate-limited (attempt %d/%d), retrying in %.1fs: %s",
+                attempt + 1, max_retries, delay, e,
+            )
+            time.sleep(delay)
+    # Should be unreachable, but keep mypy/pyflakes happy.
+    raise RateLimitExceeded(str(last_error))
+
 
 def merge_dict(left, right):
     """Custom reducer to merge candidate questions without overwriting."""
@@ -86,6 +141,11 @@ class state(TypedDict):
     company_name: str
     role: str
     difficulty_level: str
+    # Which DSA topic(s) this turn actually needs. Set fresh every turn by
+    # reviwer_node (NOT merged) so a later turn never gets confused by
+    # candidate_questions keys left over from an earlier turn.
+    topic: str
+    requested_topics: list
     final_result: str
     candidate_questions: Annotated[dict, merge_dict]
 
@@ -220,7 +280,7 @@ Candidate's newest message:
 
 Category (one word, lowercase, nothing else):"""
 
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     category = response.content.strip().lower()
 
     valid_categories = ["dsa", "behavioral", "company_research", "resume_gap", "general_chat"]
@@ -234,37 +294,86 @@ Category (one word, lowercase, nothing else):"""
 
 
 def reviwer_node(state: state) -> dict:
-    """detects the difficulty level (hard/medium/easy) the user asked for"""
+    """Extracts BOTH the difficulty level (easy/medium/hard) AND the DSA topic
+    from the candidate's message, in a single Groq call.
+
+    Determining the topic here (instead of always fanning out to all three
+    topic-generator nodes) is what lets router_function send the request
+    straight to the one matching node most of the time — since classifier_node
+    already only routes here when a topic is named or clearly continued from
+    earlier in the conversation, "ambiguous" should be rare in practice.
+    """
     user_message = state['user_input']
+    history = format_history(state)
 
-    prompt = f"""You extract the requested difficulty level from a candidate's message
-about a DSA practice question.
+    prompt = f"""You extract two things from a candidate's DSA practice-question
+request: the difficulty level and the topic area.
 
-Respond with EXACTLY ONE word — "easy", "medium", or "hard" — and nothing else: no
-punctuation, no explanation, no quotes.
+Recent conversation so far (most recent last), for resolving references like
+"give me a harder one" or continuing whatever topic was already established:
+{history}
 
-Rules:
-- If the message explicitly names a difficulty ("easy", "medium", "hard", or close
-  synonyms like "simple"/"basic" -> easy, "tough"/"challenging"/"tricky" -> hard),
-  return that difficulty.
+Respond with ONLY a compact JSON object, nothing else — no markdown fences, no
+explanation:
+{{"topic": "<one of: arrays_hashing, trees_graphs, dp, ambiguous>", "difficulty": "<one of: easy, medium, hard>"}}
+
+Rules for "topic":
+- arrays_hashing: arrays, hashing, hash maps/sets, two pointers, sliding window,
+  prefix sums, strings.
+- trees_graphs: binary trees, BSTs, general trees, graphs, BFS/DFS, union-find,
+  topological sort.
+- dp: dynamic programming, memoization, tabulation.
+- If the newest message doesn't name a topic, but a topic was clearly already
+  established earlier in the conversation and this message is continuing it
+  (e.g. "give me a harder one" right after a trees/graphs question), use that
+  established topic.
+- If you genuinely cannot determine a single topic (no topic named now, and none
+  established to continue), use "ambiguous".
+
+Rules for "difficulty":
+- If the message explicitly names a difficulty ("easy", "medium", "hard", or
+  close synonyms like "simple"/"basic" -> easy, "tough"/"challenging"/"tricky" ->
+  hard), use that.
 - If the message asks for something relative to a prior question ("harder one",
-  "step it up") -> return "hard". If it asks for something easier/simpler than
-  before -> return "easy".
+  "step it up") -> "hard". If it asks for something easier -> "easy".
 - If no difficulty is stated or implied at all, default to "medium".
 
-Candidate message:
+Candidate's newest message:
 \"\"\"{user_message}\"\"\"
 
-Difficulty (one word only):"""
+JSON:"""
 
-    response = llm.invoke(prompt)
-    difficulty = response.content.strip().lower()
+    response = safe_llm_invoke(prompt)
+    raw = response.content.strip()
+    # Strip accidental markdown fences before parsing.
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        raw = raw.replace("json", "", 1).strip() if raw.lower().startswith("json") else raw
+
+    topic = "ambiguous"
+    difficulty = "medium"
+    try:
+        data = json.loads(raw)
+        topic = str(data.get("topic", "ambiguous")).strip().lower()
+        difficulty = str(data.get("difficulty", "medium")).strip().lower()
+    except (json.JSONDecodeError, AttributeError) as e:
+        logger.warning("reviwer_node: couldn't parse JSON (%s), raw was: %r", e, raw)
+
+    valid_topics = ["arrays_hashing", "trees_graphs", "dp"]
+    if topic not in valid_topics:
+        topic = "ambiguous"
 
     valid_difficulties = ["easy", "medium", "hard"]
     if difficulty not in valid_difficulties:
         difficulty = "medium"
 
-    return {"difficulty_level": difficulty}
+    requested_topics = [topic] if topic != "ambiguous" else list(valid_topics)
+
+    return {
+        "difficulty_level": difficulty,
+        "topic": topic,
+        "requested_topics": requested_topics,
+    }
 
 
 def array_hasing_node(state: state) -> dict:
@@ -295,7 +404,7 @@ CRITICAL INSTRUCTIONS:
 5. Avoid the most overused textbook example (e.g. the exact classic "two sum" wording)
    unless the difficulty is easy and no fresher equivalent fits as well.
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     return {"candidate_questions": {"arrays_hashing": response.content.strip()}}
 
 
@@ -327,7 +436,7 @@ CRITICAL INSTRUCTIONS:
 5. Avoid the most overused textbook example unless the difficulty is easy and no
    fresher equivalent fits as well.
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     return {"candidate_questions": {"trees_graphs": response.content.strip()}}
 
 
@@ -358,15 +467,39 @@ CRITICAL INSTRUCTIONS:
 5. Avoid the most overused textbook example unless the difficulty is easy and no
    fresher equivalent fits as well.
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     return {"candidate_questions": {"dp": response.content.strip()}}
 
 
 def picker_node(state: state) -> dict:
-    """picks the single best candidate question out of the 3 parallel candidates"""
+    """Picks the single best candidate question.
+
+    candidate_questions is merged (never cleared) across the whole session by
+    design, so it can still contain keys from earlier turns. requested_topics
+    is set FRESH every turn by reviwer_node, so we filter down to just this
+    turn's candidates before deciding anything — that's what keeps an old
+    "trees_graphs" question from a previous turn out of today's decision.
+
+    When only one topic was actually requested (the common case now that
+    routing goes straight to the matching node), there's nothing to pick
+    between — skip the LLM call entirely and return that candidate directly.
+    """
     user_message = state['user_input']
     difficulty_level = state['difficulty_level']
-    candidates = state['candidate_questions']
+    requested_topics = state.get('requested_topics') or list(state['candidate_questions'].keys())
+    all_candidates = state['candidate_questions']
+
+    candidates = {k: v for k, v in all_candidates.items() if k in requested_topics}
+    if not candidates:
+        # Defensive fallback — should not normally happen.
+        candidates = all_candidates
+
+    if len(candidates) == 1:
+        final_question = next(iter(candidates.values()))
+        return {
+            "final_result": final_question,
+            "messages": [("ai", final_question)],
+        }
 
     topic_keys = list(candidates.keys())
     candidates_text = "\n\n".join(
@@ -396,7 +529,7 @@ CRITICAL INSTRUCTIONS:
 4. Output nothing else — no explanation, no punctuation, no quotes, no extra text.
 
 Chosen topic key:"""
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
 
     chosen_topic = response.content.strip().split("\n")[0].strip().lower()
     final_question = candidates.get(chosen_topic, list(candidates.values())[0])
@@ -444,7 +577,7 @@ role:
 search results:
 {search_results}
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     final_result = response.content.strip()
     return {
         "final_result": final_result,
@@ -492,7 +625,7 @@ resume context:
 candidate's question:
 \"\"\"{user_message}\"\"\"
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     final_result = response.content.strip()
     return {
         "final_result": final_result,
@@ -528,12 +661,13 @@ CRITICAL INSTRUCTIONS:
 candidate's request:
 \"\"\"{user_message}\"\"\"
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     final_result = response.content.strip()
     return {
         "final_result": final_result,
         "messages": [("ai", final_result)],
     }
+
 
 def general_chat_node(state: state) -> dict:
     """handles greetings, small talk, and anything that isn't a specific coaching request"""
@@ -612,7 +746,7 @@ Read the room otherwise:
 
 Keep it to 1-2 sentences. No bullet points, no lists, no repeated sign-offs.
 """
-    response = llm.invoke(prompt)
+    response = safe_llm_invoke(prompt)
     final_result = response.content.strip()
     return {
         "final_result": final_result,
@@ -633,6 +767,28 @@ def router_function(state: state):
         return "behavioral_node"
     else:
         return "general_chat_node"
+
+
+def topic_router_function(state: state):
+    """Reads the topic set by reviwer_node and routes to JUST the matching
+    topic-generator node — instead of always firing all three in parallel.
+
+    All three Groq calls hitting at once was the actual cause of the
+    intermittent 400s: a burst like that is an easy way to trip a
+    provider-side rate limit even under otherwise-light traffic. Now that
+    reviwer_node determines the topic, we only pay for a 3-way fan-out on
+    the (should be rare) "ambiguous" case — and even then, safe_llm_invoke
+    will retry through a transient 429 instead of failing the whole request.
+    """
+    topic = state.get('topic', 'ambiguous')
+    if topic == "arrays_hashing":
+        return ["array_hasing_node"]
+    elif topic == "trees_graphs":
+        return ["trees_graphs_node"]
+    elif topic == "dp":
+        return ["dp_node"]
+    else:
+        return ["array_hasing_node", "trees_graphs_node", "dp_node"]
 
 #  it will called once when the session created 
 # of the create graph we need to wrap it into the function and save it memorysaver
@@ -656,9 +812,11 @@ def create_graph():
     graph.add_edge(START, "classifier_node")
 
     graph.add_conditional_edges("classifier_node", router_function)
-    graph.add_edge("reviwer_node", "array_hasing_node")
-    graph.add_edge("reviwer_node", "trees_graphs_node")
-    graph.add_edge("reviwer_node", "dp_node")
+    graph.add_conditional_edges(
+        "reviwer_node",
+        topic_router_function,
+        ["array_hasing_node", "trees_graphs_node", "dp_node"],
+    )
 
     graph.add_edge("array_hasing_node", "picker_node")
     graph.add_edge("trees_graphs_node", "picker_node")

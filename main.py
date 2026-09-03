@@ -1,11 +1,17 @@
 import uuid
+import logging
+import traceback
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from project_raw import create_graph
+from project_raw import create_graph, RateLimitExceeded
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("interview_coach.api")
 
 # --- build the graph ONCE, when the API server starts up ---
 # (not on every request - that would be very slow and wasteful)
@@ -86,6 +92,8 @@ def start_session(payload: StartSessionRequest):
             "messages": [],
             "classifier": "",
             "difficulty_level": "",
+            "topic": "",
+            "requested_topics": [],
             "final_result": "",
             "candidate_questions": {},
         },
@@ -108,9 +116,21 @@ def chat(payload: ChatRequest):
             {"user_input": payload.user_input},
             config=config,
         )
+    except RateLimitExceeded as e:
+        # The LLM provider (Groq) kept throttling us even after retries.
+        # 503 tells the frontend/client this is transient and worth retrying
+        # shortly, rather than a bad request on their end.
+        logger.error("Rate limit exhausted for thread %s: %s", payload.thread_id, e)
+        raise HTTPException(
+            status_code=503,
+            detail="The AI provider is rate-limiting requests right now. Please wait a few seconds and try again.",
+        )
     except Exception as e:
-        # if thread_id is invalid/unknown, or something inside a node fails,
-        # surface a clean HTTP error instead of a raw stack trace
+        # Log the FULL traceback server-side so the real cause (bad thread_id,
+        # a node bug, a provider error, etc.) is actually visible in the
+        # terminal/logs instead of just a bare "400 Bad Request" access log line.
+        logger.error("chat() failed for thread %s: %s", payload.thread_id, e)
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
     return ChatResponse(

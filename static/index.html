@@ -201,6 +201,9 @@
     border-radius: 12px 12px 2px 12px;
     padding: 10px 14px;
   }
+  .bubble.error {
+    color: #e88a5f;
+  }
   .bubble p { margin: 0 0 8px; }
   .bubble p:last-child { margin-bottom: 0; }
   .bubble ul { margin: 4px 0 8px; padding-left: 20px; }
@@ -215,7 +218,7 @@
     gap: 8px;
   }
 
-  .copy-btn {
+  .copy-btn, .retry-btn {
     background: none;
     border: none;
     color: var(--muted);
@@ -224,7 +227,7 @@
     font-family: inherit;
     padding: 0;
   }
-  .copy-btn:hover { color: var(--accent); }
+  .copy-btn:hover, .retry-btn:hover { color: var(--accent); }
 
   .typing-dots {
     display: flex;
@@ -356,6 +359,7 @@
   const API_BASE = "";
   let threadId = null;
   let nearBottom = true;
+  let lastUserText = null; // remembers the last message, for the Retry link on failure
 
   const setupEl = document.getElementById("setup");
   const chatScreenEl = document.getElementById("chat-screen");
@@ -457,6 +461,7 @@
 
   function resetSession() {
     threadId = null;
+    lastUserText = null;
     messagesEl.innerHTML = "";
     chipsEl.innerHTML = "";
     sessionBadge.style.display = "none";
@@ -485,6 +490,7 @@
     const text = (overrideText ?? inputEl.value).trim();
     if (!text || !threadId) return;
 
+    lastUserText = text;
     chipsEl.innerHTML = "";
     addMessage("user", text);
     inputEl.value = "";
@@ -500,14 +506,34 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ thread_id: threadId, user_input: text }),
       });
-      if (!res.ok) throw new Error(String(res.status));
+
+      typingRow.remove();
+
+      if (!res.ok) {
+        // Surface the real backend message instead of a generic one, so
+        // problems (like the AI provider rate-limiting us) are actually
+        // visible instead of looking like a broken app.
+        let detail = `Request failed (${res.status}).`;
+        try {
+          const errBody = await res.json();
+          if (errBody && errBody.detail) detail = errBody.detail;
+        } catch (_) {
+          // response wasn't JSON — keep the generic message
+        }
+        const isRetryable = res.status === 503 || res.status === 429;
+        addMessage("ai", detail, { isError: true, showRetry: isRetryable });
+        return;
+      }
 
       const data = await res.json();
-      typingRow.remove();
       addMessage("ai", data.final_result);
     } catch (err) {
       typingRow.remove();
-      addMessage("ai", "Something went wrong reaching the server. Please try again.");
+      addMessage(
+        "ai",
+        "Couldn't reach the server. Check your connection and try again.",
+        { isError: true, showRetry: true }
+      );
     } finally {
       sendBtn.disabled = false;
     }
@@ -533,7 +559,8 @@
     return row;
   }
 
-  function addMessage(role, text) {
+  function addMessage(role, text, opts) {
+    opts = opts || {};
     const row = document.createElement("div");
     row.className = `row ${role}`;
 
@@ -545,7 +572,7 @@
     wrap.className = "bubble-wrap";
 
     const bubble = document.createElement("div");
-    bubble.className = "bubble";
+    bubble.className = "bubble" + (opts.isError ? " error" : "");
     bubble.innerHTML = role === "ai" ? renderMarkdownLite(text) : escapeHtml(text);
 
     wrap.appendChild(bubble);
@@ -553,6 +580,7 @@
     if (role === "ai") {
       const meta = document.createElement("div");
       meta.className = "msg-meta";
+
       const copyBtn = document.createElement("button");
       copyBtn.className = "copy-btn";
       copyBtn.textContent = "Copy";
@@ -562,6 +590,15 @@
         setTimeout(() => (copyBtn.textContent = "Copy"), 1200);
       });
       meta.appendChild(copyBtn);
+
+      if (opts.showRetry && lastUserText) {
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "retry-btn";
+        retryBtn.textContent = "Retry";
+        retryBtn.addEventListener("click", () => sendMessage(lastUserText));
+        meta.appendChild(retryBtn);
+      }
+
       wrap.appendChild(meta);
     }
 
