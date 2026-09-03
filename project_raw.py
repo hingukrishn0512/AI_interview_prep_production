@@ -68,32 +68,52 @@ resume_retriever = build_RAG(
 def classifier_node(state: state) -> dict:
     """looks at the user's input and decides which of the 5 branches to route to"""
     user_message = state['user_input']
- 
+
     prompt = f"""You are a query classifier for an AI interview prep coach.
- 
-    Your task is to look at the user's message and decide which category it belongs to.
- 
-    Reply with only ONE word, nothing else:
-    - "dsa" if they want a coding or DSA practice question
-    - "behavioral" if they want a behavioral or HR-style interview question
-    - "company_research" if they're asking about the company's interview process, culture, or news
-    - "resume_gap" if they're asking what to brush up on based on their resume vs the role
-    - "general_chat" if it's a greeting, small talk, thanks, or anything not specifically
-      requesting a practice question or research
- 
-    user_input:
-    {user_message}
-    """
- 
+
+Read the candidate's message and classify it into EXACTLY ONE of the following
+categories. Respond with only the category name in lowercase, with no punctuation,
+quotes, explanation, or extra words.
+
+Categories:
+- dsa: The user wants you to GENERATE a brand-new coding/DSA practice question for
+  them to solve right now (e.g. "give me a question", "ask me something on trees",
+  "give me a harder one", "another one please"). Do NOT use "dsa" for requests about
+  study resources, links, general advice, or tips about DSA — route those to
+  "general_chat" instead.
+- behavioral: The user wants a behavioral or HR-style interview question generated.
+- company_research: The user is asking about a specific company's interview process,
+  culture, values, or recent news relevant to interviewing there.
+- resume_gap: The user is asking what they should brush up on, or how their resume
+  compares to what's expected for the target role.
+- general_chat: Greetings, small talk, thanks, farewells, requests for study
+  resources/links/advice, follow-up questions about a question already given (e.g.
+  "can you explain that answer"), or anything that doesn't clearly fit the categories
+  above. When in doubt, choose general_chat rather than guessing.
+
+Examples:
+"give me a hard DSA question" -> dsa
+"ask me something on graphs" -> dsa
+"give me an easier one" -> dsa
+"give me a resource to learn DSA" -> general_chat
+"how should I prepare for DSA rounds in general?" -> general_chat
+"any tips for arrays and hashing?" -> general_chat
+"what's it like interviewing at Google?" -> company_research
+"what should I review before my SWE interview?" -> resume_gap
+"ask me a question about handling conflict" -> behavioral
+
+Candidate message:
+\"\"\"{user_message}\"\"\"
+
+Category (one word, lowercase, nothing else):"""
+
     response = llm.invoke(prompt)
     category = response.content.strip().lower()
- 
-    # "general_chat" now included, so a genuine greeting doesn't get misrouted
-    # into "behavioral" by the fallback
+
     valid_categories = ["dsa", "behavioral", "company_research", "resume_gap", "general_chat"]
     if category not in valid_categories:
         category = "general_chat"
- 
+
     return {"classifier": category}
 
 
@@ -101,35 +121,64 @@ def reviwer_node(state: state) -> dict:
     """detects the difficulty level (hard/medium/easy) the user asked for"""
     user_message = state['user_input']
 
-    prompt = f"identify the keywords from the user_input \
-            keywords like hard , medium , easy and in return \
-            you only give me only one word answer if user entered it \
-            hard , easy , medium \
-            user_input\
-            {user_message}"
+    prompt = f"""You extract the requested difficulty level from a candidate's message
+about a DSA practice question.
+
+Respond with EXACTLY ONE word — "easy", "medium", or "hard" — and nothing else: no
+punctuation, no explanation, no quotes.
+
+Rules:
+- If the message explicitly names a difficulty ("easy", "medium", "hard", or close
+  synonyms like "simple"/"basic" -> easy, "tough"/"challenging"/"tricky" -> hard),
+  return that difficulty.
+- If the message asks for something relative to a prior question ("harder one",
+  "step it up") -> return "hard". If it asks for something easier/simpler than
+  before -> return "easy".
+- If no difficulty is stated or implied at all, default to "medium".
+
+Candidate message:
+\"\"\"{user_message}\"\"\"
+
+Difficulty (one word only):"""
 
     response = llm.invoke(prompt)
-    return {"difficulty_level": response.content.strip().lower()}
+    difficulty = response.content.strip().lower()
+
+    valid_difficulties = ["easy", "medium", "hard"]
+    if difficulty not in valid_difficulties:
+        difficulty = "medium"
+
+    return {"difficulty_level": difficulty}
 
 
 def array_hasing_node(state: state) -> dict:
     """asking questions about array_hasing_node topic for DSA"""
     difficulty_level = state['difficulty_level']
 
-    prompt = f"""You are an interviewer creating a DSA practice question.
+    prompt = f"""You are an experienced technical interviewer creating a DSA practice
+question for a candidate.
 
-    Generate exactly ONE interview question on the topic of arrays and hashing,
-    at a {difficulty_level} difficulty level.
+Generate exactly ONE original interview question on the topic of arrays and hashing,
+calibrated to a {difficulty_level} difficulty level for a real software engineering
+interview.
 
-    CRITICAL INSTRUCTIONS:
-    1. Output ONLY the question text itself, nothing else.
-    2. Do not include the answer, hints, or explanation.
-    3. Do not add labels like "Question:" or markdown formatting.
-    4. Keep it realistic, the way it would actually be asked in a real interview.
+Guidelines for calibration:
+- easy: a single well-known pattern (e.g. two-sum style), solvable in O(n) with basic
+  hashing, minimal edge cases.
+- medium: requires combining hashing with another technique (sliding window, prefix
+  sums, sorting) or handling multiple edge cases.
+- hard: requires a non-obvious insight, tight complexity constraints, or combining
+  hashing with a less common data structure/trick.
 
-    difficulty_level:
-    {difficulty_level}
-    """
+CRITICAL INSTRUCTIONS:
+1. Output ONLY the question text itself — nothing else.
+2. Do not include the answer, hints, approach, or explanation.
+3. Do not add labels like "Question:" or any markdown formatting.
+4. Phrase it exactly as it would be asked out loud in a real interview, including any
+   necessary constraints (input size, value ranges) if relevant to the difficulty.
+5. Avoid the most overused textbook example (e.g. the exact classic "two sum" wording)
+   unless the difficulty is easy and no fresher equivalent fits as well.
+"""
     response = llm.invoke(prompt)
     return {"candidate_questions": {"arrays_hashing": response.content.strip()}}
 
@@ -138,20 +187,30 @@ def trees_graphs_node(state: state) -> dict:
     """asking questions about trees_graphs_node topic for DSA"""
     difficulty_level = state['difficulty_level']
 
-    prompt = f"""You are an interviewer creating a DSA practice question.
+    prompt = f"""You are an experienced technical interviewer creating a DSA practice
+question for a candidate.
 
-    Generate exactly ONE interview question on the topic of trees and graphs,
-    at a {difficulty_level} difficulty level.
+Generate exactly ONE original interview question on the topic of trees and graphs,
+calibrated to a {difficulty_level} difficulty level for a real software engineering
+interview.
 
-    CRITICAL INSTRUCTIONS:
-    1. Output ONLY the question text itself, nothing else.
-    2. Do not include the answer, hints, or explanation.
-    3. Do not add labels like "Question:" or markdown formatting.
-    4. Keep it realistic, the way it would actually be asked in a real interview.
+Guidelines for calibration:
+- easy: a single standard traversal (BFS/DFS) or basic tree property check.
+- medium: requires combining traversal with additional logic (e.g. shortest path,
+  level-aware processing, tree reconstruction, cycle detection).
+- hard: requires an advanced algorithm (e.g. topological sort with constraints,
+  union-find, LCA, or non-trivial state tracking during traversal).
 
-    difficulty_level:
-    {difficulty_level}
-    """
+CRITICAL INSTRUCTIONS:
+1. Output ONLY the question text itself — nothing else.
+2. Do not include the answer, hints, approach, or explanation.
+3. Do not add labels like "Question:" or any markdown formatting.
+4. Phrase it exactly as it would be asked out loud in a real interview, including any
+   necessary constraints (graph size, directed/undirected, weighted/unweighted) if
+   relevant to the difficulty.
+5. Avoid the most overused textbook example unless the difficulty is easy and no
+   fresher equivalent fits as well.
+"""
     response = llm.invoke(prompt)
     return {"candidate_questions": {"trees_graphs": response.content.strip()}}
 
@@ -160,20 +219,29 @@ def dp_node(state: state) -> dict:
     """asking questions about dp_node topic for DSA"""
     difficulty_level = state['difficulty_level']
 
-    prompt = f"""You are an interviewer creating a DSA practice question.
+    prompt = f"""You are an experienced technical interviewer creating a DSA practice
+question for a candidate.
 
-    Generate exactly ONE interview question on the topic of dynamic programming,
-    at a {difficulty_level} difficulty level.
+Generate exactly ONE original interview question on the topic of dynamic programming,
+calibrated to a {difficulty_level} difficulty level for a real software engineering
+interview.
 
-    CRITICAL INSTRUCTIONS:
-    1. Output ONLY the question text itself, nothing else.
-    2. Do not include the answer, hints, or explanation.
-    3. Do not add labels like "Question:" or markdown formatting.
-    4. Keep it realistic, the way it would actually be asked in a real interview.
+Guidelines for calibration:
+- easy: a classic 1D DP with an obvious recurrence (e.g. climbing stairs style).
+- medium: requires identifying a less obvious state (2D DP, DP over strings/arrays
+  with an extra dimension) or optimizing space.
+- hard: requires a non-obvious state definition, multiple constraints combined, or
+  DP paired with another technique (bitmask, binary search on the answer, graph DP).
 
-    difficulty_level:
-    {difficulty_level}
-    """
+CRITICAL INSTRUCTIONS:
+1. Output ONLY the question text itself — nothing else.
+2. Do not include the answer, hints, approach, or explanation.
+3. Do not add labels like "Question:" or any markdown formatting.
+4. Phrase it exactly as it would be asked out loud in a real interview, including any
+   necessary constraints (input size, ranges) if relevant to the difficulty.
+5. Avoid the most overused textbook example unless the difficulty is easy and no
+   fresher equivalent fits as well.
+"""
     response = llm.invoke(prompt)
     return {"candidate_questions": {"dp": response.content.strip()}}
 
@@ -184,28 +252,34 @@ def picker_node(state: state) -> dict:
     difficulty_level = state['difficulty_level']
     candidates = state['candidate_questions']
 
+    topic_keys = list(candidates.keys())
     candidates_text = "\n\n".join(
-        [f"{topic}:\n{question}" for topic, question in candidates.items()]
+        [f"[{topic}]\n{question}" for topic, question in candidates.items()]
     )
 
-    prompt = f"""You are helping pick the best DSA interview question to show a candidate.
+    prompt = f"""You are helping select the single best DSA interview question to show
+a candidate, out of several already-generated options.
 
-    Below are 3 candidate questions from different topics, all generated at the
-    {difficulty_level} difficulty level. The candidate's original request was:
-    "{user_message}"
+The candidate's original request was:
+\"\"\"{user_message}\"\"\"
 
-    CRITICAL INSTRUCTIONS:
-    1. If the candidate's request mentions a specific topic (like "array question" or
-       "something on graphs"), pick that matching candidate.
-    2. If no topic preference is mentioned, pick whichever candidate is clearest,
-       most realistic, and best matches the {difficulty_level} difficulty level.
-    3. Reply with ONLY the topic name of your chosen candidate on the first line
-       (one of: {", ".join(candidates.keys())}).
-    4. Do not add any other text on that first line.
+All candidates below were generated at the {difficulty_level} difficulty level. Each
+is labeled with its topic key in square brackets.
 
-    candidates:
-    {candidates_text}
-    """
+Candidates:
+{candidates_text}
+
+CRITICAL INSTRUCTIONS:
+1. If the candidate's request clearly names or implies a specific topic (e.g. "array
+   question", "something on graphs", "a DP problem"), pick the matching candidate for
+   that topic — even if you think another one reads slightly better.
+2. If no topic preference is stated or implied, pick whichever candidate is clearest,
+   most realistic, and best matches the {difficulty_level} difficulty level.
+3. Respond with ONLY the exact topic key of your chosen candidate, copied verbatim
+   from the square brackets above (one of: {", ".join(topic_keys)}).
+4. Output nothing else — no explanation, no punctuation, no quotes, no extra text.
+
+Chosen topic key:"""
     response = llm.invoke(prompt)
 
     chosen_topic = response.content.strip().split("\n")[0].strip().lower()
@@ -222,28 +296,35 @@ def company_reasearch_node(state: state) -> dict:
     search_query = f"{company_name} {role} interview process culture recent news"
     search_results = search_tool.invoke(search_query)
 
-    prompt = f"""You are a career coach helping a candidate prepare for an interview.
+    prompt = f"""You are a career coach helping a candidate prepare for an interview at
+{company_name} for the role of {role}.
 
-    Use the search results below to summarize what the candidate should know about the
-    company's interview process, work culture, and any recent news relevant to the role.
+Use ONLY the search results below to write a concise, practical prep briefing.
 
-    CRITICAL INSTRUCTIONS:
-    1. Base your answer ONLY on the search results provided below. Do not invent details
-       that aren't supported by them.
-    2. If the search results don't cover something (e.g. interview process specifics),
-       say so honestly instead of guessing.
-    3. Organize the answer into short sections: Interview Process, Culture, Recent News.
-    4. Keep it concise and practical, focused on what actually helps interview prep.
+CRITICAL INSTRUCTIONS:
+1. Base every claim strictly on the search results provided. Never invent interview
+   stages, culture claims, or news that isn't actually supported by them.
+2. If the search results don't cover a section (e.g. no interview-process detail was
+   found), say so plainly in that section instead of guessing or padding with generic
+   advice.
+3. Structure the answer under exactly these three headers, in this order:
+   - Interview Process
+   - Culture
+   - Recent News
+4. Under each header, use short bullet points (2-4) rather than long paragraphs.
+5. End with a single "Why this matters" line connecting the most actionable detail to
+   how the candidate should prepare — only if the search results support it.
+6. Keep the whole answer tight and skimmable; no filler sentences.
 
-    company:
-    {company_name}
+company:
+{company_name}
 
-    role:
-    {role}
+role:
+{role}
 
-    search results:
-    {search_results}
-    """
+search results:
+{search_results}
+"""
     response = llm.invoke(prompt)
     return {"final_result": response.content.strip()}
 
@@ -258,31 +339,36 @@ def resume_gap_node(state: state) -> dict:
     retrieved_docs = resume_retriever.invoke(query)
     resume_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
 
-    prompt = f"""You are a career coach helping a candidate prepare for a job interview.
+    prompt = f"""You are a career coach helping a candidate prepare for a job interview
+for {role} at {company_name}.
 
-    Your task is to compare the candidate's resume against what is typically expected
-    for the given role, and point out gaps they should be ready to address or brush up on.
+Compare the resume excerpts below against what is typically expected for this role,
+and identify concrete gaps the candidate should be ready to address or brush up on.
 
-    CRITICAL INSTRUCTIONS:
-    1. Base your analysis ONLY on the resume content provided below. Do not invent skills,
-       projects, or experience that aren't actually present in the resume.
-    2. Be specific: name the exact skills or experience areas that are missing or weak for
-       this role, not vague statements like "needs more experience".
-    3. Also mention what IS already strong on the resume for this role, so the answer isn't
-       purely critical.
-    4. Keep the tone encouraging and constructive, like a mentor helping them prepare, not
-       harshly critical.
-    5. Keep the answer focused and practical, ideally under 200 words.
+CRITICAL INSTRUCTIONS:
+1. Base your analysis strictly on the resume content provided below. Never invent
+   skills, projects, or experience that aren't actually present in it.
+2. If the retrieved resume context looks thin, unrelated to the role, or empty, say so
+   plainly instead of fabricating an analysis.
+3. Be specific — name exact skills, tools, or experience areas that are missing or
+   weak for this role. Avoid vague statements like "needs more experience."
+4. Also explicitly call out what IS already strong on the resume for this role, so the
+   answer isn't purely critical.
+5. Keep the tone encouraging and constructive, like a mentor helping them prepare —
+   never harshly critical.
+6. Structure the answer as: a short "Strengths" section, then a short "Gaps to
+   address" section, each 2-4 bullet points.
+7. Keep the whole answer under 200 words.
 
-    role:
-    {role} at {company_name}
+role:
+{role} at {company_name}
 
-    resume context:
-    {resume_context}
+resume context:
+\"\"\"{resume_context}\"\"\"
 
-    candidate's question:
-    {user_message}
-    """
+candidate's question:
+\"\"\"{user_message}\"\"\"
+"""
     response = llm.invoke(prompt)
     return {"final_result": response.content.strip()}
 
@@ -293,21 +379,24 @@ def behavioral_node(state: state) -> dict:
     company_name = state['company_name']
     user_message = state['user_input']
 
-    prompt = f"""You are an interviewer creating a behavioral interview question.
+    prompt = f"""You are an experienced interviewer creating a behavioral / HR-style
+interview question for a candidate interviewing for {role} at {company_name}.
 
-    Generate exactly ONE behavioral / HR-style interview question suitable for a candidate
-    interviewing for the role of {role} at {company_name}.
+CRITICAL INSTRUCTIONS:
+1. Base the question on a theme genuinely relevant to this specific role (e.g.
+   teamwork, conflict resolution, ownership, handling failure, prioritization,
+   ambiguity, cross-functional communication) — pick the theme that best fits a
+   {role} rather than defaulting to the most generic option.
+2. If the candidate's request below specifies a theme or scenario, honor it.
+3. Output ONLY the question text itself, phrased the way it would actually be asked
+   out loud (e.g. "Tell me about a time when...").
+4. Do not include the answer, tips, the STAR method explanation, or any follow-up
+   prompts.
+5. Do not add labels like "Question:" or any markdown formatting.
 
-    CRITICAL INSTRUCTIONS:
-    1. Base the question on common themes for this type of role (teamwork, conflict resolution,
-       leadership, handling failure, prioritization, etc).
-    2. Output ONLY the question text itself, nothing else.
-    3. Do not include the answer, tips, or the STAR method explanation.
-    4. Do not add labels like "Question:" or markdown formatting.
-
-    candidate's request:
-    {user_message}
-    """
+candidate's request:
+\"\"\"{user_message}\"\"\"
+"""
     response = llm.invoke(prompt)
     return {"final_result": response.content.strip()}
 
@@ -316,28 +405,33 @@ def general_chat_node(state: state) -> dict:
     user_message = state['user_input']
     role = state.get('role', '')
     company_name = state.get('company_name', '')
-    prompt = f"""You are a friendly AI interview prep coach chatting casually with a candidate
-    preparing for a {role} role at {company_name}.
+    prompt = f"""You are a friendly, sharp AI interview prep coach chatting casually
+with a candidate preparing for a {role} role at {company_name}.
 
+The candidate just said:
+\"\"\"{user_message}\"\"\"
 
-    The candidate just said:
-    {user_message}
+Respond naturally and briefly, like a real person texting back — never like a
+scripted assistant reciting a feature list.
 
-    Respond naturally and briefly — like a real person, not a scripted assistant.
+Read the room:
+- If they're greeting you for the first time, or clearly don't know what you can do,
+  you may briefly mention you can help with DSA questions, behavioral questions,
+  company research, or resume gap analysis — but only ONCE in this conversation, and
+  only if it fits naturally in one clause, not a bulleted pitch.
+- If they're asking for general study resources, links, or advice (not a fresh
+  practice question), give a couple of genuinely useful, specific suggestions rather
+  than a generic "here are some resources" brush-off.
+- If they're saying bye, thanks, or wrapping up, respond warmly and briefly. Do NOT
+  pitch your features again or ask how their prep is going if that's already come up
+  earlier in this conversation.
+- If they're just chatting (a joke, small talk, a random comment), just chat back in
+  kind. Don't force a redirect toward interview prep every time.
+- Never repeat a phrase, question, or feature pitch you've already used earlier in
+  this conversation.
 
-    Read the room:
-    - If they're greeting you for the first time or seem unsure what you do, you can
-      mention you can help with DSA questions, behavioral questions, company research,
-      or resume gap analysis — but only ONCE per conversation, and only if it fits naturally.
-    - If they're saying bye, thanks, or wrapping up, just say something warm and short back.
-      Do NOT pitch your features again or ask how their prep is going if you've already
-      asked that earlier in this conversation.
-    - If they're just chatting (a joke, small talk, a random comment), just chat back.
-      Don't redirect every reply toward interview prep.
-    - Never repeat a phrase or question you already used earlier in this conversation.
-
-    Keep it to 1-2 sentences. No bullet points, no lists, no repeated sign-offs.
-    """
+Keep it to 1-2 sentences. No bullet points, no lists, no repeated sign-offs.
+"""
     response = llm.invoke(prompt)
     final_result = response.content.strip()
     return {
