@@ -64,6 +64,21 @@ def safe_llm_invoke(prompt, max_retries: int = 4, base_delay: float = 1.5):
                 or "rate_limit" in error_text
                 or "too many requests" in error_text
             )
+            # Quota exhaustion (daily/monthly cap) looks like a rate limit but
+            # won't clear in seconds — retrying just burns time (and possibly
+            # more of the remaining allowance) for a call that can't succeed
+            # until the quota resets. Fail immediately in that case instead
+            # of running through the full backoff schedule.
+            is_quota_exhausted = is_rate_limit and (
+                "quota" in error_text
+                or "per day" in error_text
+                or "daily" in error_text
+                or "tokens per day" in error_text
+                or "tpd" in error_text
+            )
+            if is_quota_exhausted:
+                logger.error("LLM quota exhausted, not retrying: %s", e)
+                raise RateLimitExceeded(str(e)) from e
             if not is_rate_limit or attempt == max_retries - 1:
                 logger.error("LLM call failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
                 if is_rate_limit:
@@ -203,8 +218,13 @@ Categories:
   worrying, or stating an intention about behavioral/HR prep either.
 - company_research: The candidate is asking about a specific company's interview
   process, culture, values, or recent news relevant to interviewing there.
-- resume_gap: The candidate is asking what they should brush up on, or how their
-  resume compares to what's expected for the target role.
+- resume_gap: The candidate wants something crafted or evaluated USING THEIR OWN
+  RESUME/BACKGROUND. This includes: asking what they should brush up on or how
+  their resume compares to what's expected for the role, asking for a summary /
+  elevator pitch / "tell me about yourself" answer based on their resume, asking
+  you to walk through their background or resume, or asking which of their
+  experiences/projects to highlight for this role. Any request that needs their
+  actual resume content as an input belongs here — not general_chat.
 - general_chat: Greetings, small talk, thanks, farewells, requests for study
   resources/links/advice, follow-up questions about something already discussed,
   corrections or clarifications, bare/underspecified requests that need a
@@ -261,6 +281,10 @@ Examples:
 "any tips for arrays and hashing?" -> general_chat
 "what's it like interviewing at Google?" -> company_research
 "what should I review before my SWE interview?" -> resume_gap
+"tell me about myself using my resume" -> resume_gap
+"give me an elevator pitch based on my resume" -> resume_gap
+"walk me through my background for this role" -> resume_gap
+"which of my projects should I highlight for this role?" -> resume_gap
 "ask me a question about handling conflict" -> behavioral
 "give me an hr question about a time you failed" -> behavioral
 "give me an hr question" (no theme named) -> general_chat
@@ -586,7 +610,12 @@ search results:
 
 
 def resume_gap_node(state: state) -> dict:
-    """identifies the gap in the resumes"""
+    """Handles any request that needs the candidate's actual resume as
+    grounding: gap analysis, an elevator pitch / "tell me about yourself",
+    a walkthrough of their background, or picking which experience to
+    highlight. All of these share the same retrieval step, so they live in
+    one node — what differs is how the response is shaped, based on what the
+    candidate actually asked for."""
     role = state['role']
     company_name = state['company_name']
     user_message = state['user_input']
@@ -596,25 +625,29 @@ def resume_gap_node(state: state) -> dict:
     resume_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
 
     prompt = f"""You are a career coach helping a candidate prepare for a job interview
-for {role} at {company_name}.
-
-Compare the resume excerpts below against what is typically expected for this role,
-and identify concrete gaps the candidate should be ready to address or brush up on.
+for {role} at {company_name}. You have the candidate's actual resume content below —
+never say or imply you don't have their resume; you do, it's provided right here.
 
 CRITICAL INSTRUCTIONS:
-1. Base your analysis strictly on the resume content provided below. Never invent
-   skills, projects, or experience that aren't actually present in it.
-2. If the retrieved resume context looks thin, unrelated to the role, or empty, say so
-   plainly instead of fabricating an analysis.
-3. Be specific — name exact skills, tools, or experience areas that are missing or
-   weak for this role. Avoid vague statements like "needs more experience."
-4. Also explicitly call out what IS already strong on the resume for this role, so the
-   answer isn't purely critical.
-5. Keep the tone encouraging and constructive, like a mentor helping them prepare —
-   never harshly critical.
-6. Structure the answer as: a short "Strengths" section, then a short "Gaps to
-   address" section, each 2-4 bullet points.
-7. Keep the whole answer under 200 words.
+1. Base everything strictly on the resume content provided below. Never invent
+   skills, projects, titles, or experience that aren't actually present in it.
+2. If the retrieved resume context looks thin, unrelated to the role, or empty, say
+   so plainly instead of fabricating an analysis.
+3. Read the candidate's request below and match your response format to what they
+   actually asked for — don't force every request into the same template:
+   - Asking what to brush up on / how their resume compares to the role -> a short
+     "Strengths" section then a short "Gaps to address" section (2-4 bullets each),
+     encouraging tone, never harshly critical.
+   - Asking for an elevator pitch / "tell me about yourself" / a walkthrough of
+     their background -> write it as a natural, first-person spoken answer (no
+     bullets), grounded in their real resume details, connecting it to why they're
+     a fit for {role} at {company_name}.
+   - Asking which experience/projects to highlight -> name the specific ones from
+     the resume context that best match {role}, with a one-line reason each.
+   - Anything else resume-related -> use your best judgment, staying grounded only
+     in the resume content provided.
+4. Keep the tone encouraging and constructive, like a mentor helping them prepare.
+5. Keep the whole answer under 200 words.
 
 role:
 {role} at {company_name}
@@ -622,7 +655,7 @@ role:
 resume context:
 \"\"\"{resume_context}\"\"\"
 
-candidate's question:
+candidate's request:
 \"\"\"{user_message}\"\"\"
 """
     response = safe_llm_invoke(prompt)
@@ -718,6 +751,13 @@ already established earlier to continue), do NOT generate or describe a question
 yourself. Just ask, in one short friendly line, which topic they'd like — arrays &
 hashing, trees & graphs, or dynamic programming — and whether they want it easy,
 medium, or hard. Nothing else.
+
+If the candidate asks you to do anything with their resume (write a pitch, tell
+them about themselves, review it, compare it to a role), do NOT say or imply you
+don't have their resume — the coach has it on file for resume-related requests,
+you just don't personally have it in this reply. Instead, tell them to ask you
+directly (e.g. "try asking me directly — I can pull from your resume for that")
+rather than denying it exists.
 
 If the candidate wants a behavioral/HR question but hasn't named a theme —
 whether that's a direct request with no theme ("give me an hr question", "i would
