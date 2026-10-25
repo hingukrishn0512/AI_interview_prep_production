@@ -71,6 +71,7 @@
   #session-badge {
     display: none;
     color: var(--accent);
+    font-size: 12.5px;
   }
 
   #reset-btn {
@@ -103,6 +104,7 @@
     font-size: 19px;
     line-height: 1.5;
     max-width: 46ch;
+    margin: 0;
   }
 
   .field { display: flex; flex-direction: column; gap: 6px; }
@@ -119,6 +121,20 @@
   }
   .field input:focus { outline: none; border-color: var(--accent); }
 
+  .field input[type="file"] { padding: 9px 11px; font-size: 13px; }
+  .field input[type="file"]::file-selector-button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-right: 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .hint { color: var(--muted); font-size: 12px; margin: 0; }
+
   button.primary {
     background: var(--accent);
     color: #1b1400;
@@ -133,7 +149,7 @@
   button.primary:hover { background: var(--accent-dim); }
   button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  #setup-error { color: #e88a5f; font-size: 13px; display: none; }
+  #setup-error { color: #e88a5f; font-size: 13px; display: none; margin: 0; }
 
   /* --- Chat screen --- */
 
@@ -194,16 +210,16 @@
   .bubble {
     font-size: 14.5px;
     line-height: 1.6;
+    overflow-wrap: anywhere;
   }
   .row.user .bubble {
     background: var(--panel);
     border: 1px solid var(--hairline);
     border-radius: 12px 12px 2px 12px;
     padding: 10px 14px;
+    white-space: pre-wrap;
   }
-  .bubble.error {
-    color: #e88a5f;
-  }
+  .bubble.error { color: #e88a5f; }
   .bubble p { margin: 0 0 8px; }
   .bubble p:last-child { margin-bottom: 0; }
   .bubble ul { margin: 4px 0 8px; padding-left: 20px; }
@@ -258,6 +274,7 @@
     padding: 0 20px 16px;
     flex-shrink: 0;
   }
+  #chips:empty { padding: 0; }
   .chip {
     background: var(--panel);
     border: 1px solid var(--hairline);
@@ -332,7 +349,7 @@
   </header>
 
   <section id="setup">
-    <p class="lede">Tell me who you're preparing for, and I'll tailor everything to that role.</p>
+    <p class="lede">Tell me who you’re preparing for and upload your resume, and I’ll tailor everything to you.</p>
     <div class="field">
       <label for="company">Company</label>
       <input id="company" type="text" placeholder="e.g. Google" autocomplete="off">
@@ -340,6 +357,11 @@
     <div class="field">
       <label for="role">Role</label>
       <input id="role" type="text" placeholder="e.g. Machine Learning Engineer Intern" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="resume">Resume (PDF)</label>
+      <input id="resume" type="file" accept="application/pdf,.pdf">
+      <p class="hint">Used only for this session to tailor answers. Max 5 MB, text-based PDF (not a scan).</p>
     </div>
     <button class="primary" id="start-btn">Start session</button>
     <p id="setup-error"></p>
@@ -349,7 +371,7 @@
     <div id="messages"></div>
     <div id="chips"></div>
     <div id="composer">
-      <textarea id="user-input" rows="1" placeholder="Message the coach..."></textarea>
+      <textarea id="user-input" rows="1" maxlength="2000" placeholder="Message the coach..."></textarea>
       <button id="send-btn">Send</button>
     </div>
   </section>
@@ -357,8 +379,11 @@
 
 <script>
   const API_BASE = "";
+  const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
   let threadId = null;
   let nearBottom = true;
+  let busy = false;        // true while a /chat request is in flight
   let lastUserText = null; // remembers the last message, for the Retry link on failure
 
   const setupEl = document.getElementById("setup");
@@ -368,6 +393,8 @@
   const setupError = document.getElementById("setup-error");
   const chipsEl = document.getElementById("chips");
   const inputEl = document.getElementById("user-input");
+  const sendBtn = document.getElementById("send-btn");
+  const startBtn = document.getElementById("start-btn");
   const resetBtn = document.getElementById("reset-btn");
 
   const SUGGESTIONS = [
@@ -379,10 +406,8 @@
 
   // iOS/Android will forcibly scroll the page to keep a focused input above
   // the on-screen keyboard, even though body/html are pinned with
-  // position: fixed + overflow: hidden. That native scroll can leave the
-  // header (and everything else) shifted out of view. Snapping scroll
-  // back to (0, 0) whenever the visual viewport changes (keyboard open/
-  // close, address bar show/hide) undoes that shift.
+  // position: fixed + overflow: hidden. Snapping scroll back to (0, 0)
+  // whenever the visual viewport changes undoes that shift.
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", () => {
       window.scrollTo(0, 0);
@@ -394,8 +419,8 @@
     }
   });
 
-  document.getElementById("start-btn").addEventListener("click", startSession);
-  document.getElementById("send-btn").addEventListener("click", () => sendMessage());
+  startBtn.addEventListener("click", startSession);
+  sendBtn.addEventListener("click", () => sendMessage());
   resetBtn.addEventListener("click", resetSession);
 
   inputEl.addEventListener("keydown", (e) => {
@@ -413,27 +438,85 @@
     nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
   });
 
+  function showSetupError(message) {
+    setupError.textContent = message;
+    setupError.style.display = "block";
+  }
+
+  // Waits until the server's AI engine has finished loading (the server answers
+  // /health straight away, but reports ready:false while it is still warming up).
+  // Returns true when ready, false if it takes longer than about two minutes.
+  async function waitUntilReady(onStatus) {
+    const deadline = Date.now() + 120000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch(`${API_BASE}/health`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ready !== false) return true;
+          onStatus("Loading the AI engine...");
+        } else {
+          onStatus("Waking the server...");
+        }
+      } catch (_) {
+        onStatus("Waking the server...");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+    return false;
+  }
+
   async function startSession() {
     const company = document.getElementById("company").value.trim();
     const role = document.getElementById("role").value.trim();
+    const resumeFile = document.getElementById("resume").files[0];
 
-    if (!company || !role) {
-      setupError.textContent = "Please fill in both fields.";
-      setupError.style.display = "block";
+    if (!company || !role || !resumeFile) {
+      showSetupError("Please fill in both fields and upload your resume.");
+      return;
+    }
+    if (!resumeFile.name.toLowerCase().endsWith(".pdf")) {
+      showSetupError("Please upload your resume as a PDF file.");
+      return;
+    }
+    if (resumeFile.size > MAX_RESUME_BYTES) {
+      showSetupError("Resume is too large (max 5 MB).");
       return;
     }
 
-    const startBtn = document.getElementById("start-btn");
     startBtn.disabled = true;
-    startBtn.textContent = "Starting...";
+    startBtn.textContent = "Checking the server...";
+    setupError.style.display = "none";
 
     try {
-      const res = await fetch(`${API_BASE}/session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_name: company, role: role }),
+      // If the free server was asleep, wait for it here instead of failing.
+      const ready = await waitUntilReady((status) => {
+        startBtn.textContent = status;
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!ready) {
+        throw new Error("The server is taking too long to start. Please try again in a minute.");
+      }
+
+      startBtn.textContent = "Uploading & starting...";
+
+      const form = new FormData();
+      form.append("company_name", company);
+      form.append("role", role);
+      form.append("resume", resumeFile);
+
+      // No Content-Type header here: the browser sets the multipart boundary itself.
+      const res = await fetch(`${API_BASE}/session`, { method: "POST", body: form });
+
+      if (!res.ok) {
+        let detail = "Couldn't start a session. Please try again.";
+        try {
+          const body = await res.json();
+          if (typeof body.detail === "string") detail = body.detail;
+        } catch (_) {
+          // response wasn't JSON — keep the generic message
+        }
+        throw new Error(detail);
+      }
 
       const data = await res.json();
       threadId = data.thread_id;
@@ -445,23 +528,34 @@
       setupEl.style.display = "none";
       chatScreenEl.style.display = "flex";
 
-      addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or a resume gap analysis.");
+      addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
       renderChips();
 
       // Don't auto-focus the composer here. Focusing immediately pops the
-      // mobile keyboard open mid-transition, which is what was pushing the
-      // header out of view. Let the user tap the input when they're ready.
+      // mobile keyboard open mid-transition and pushes the header out of view.
     } catch (err) {
-      setupError.textContent = "Couldn't start a session. Please try again.";
-      setupError.style.display = "block";
+      const offline = err instanceof TypeError; // fetch itself failed
+      showSetupError(offline
+        ? "Couldn't reach the server. Check your connection and try again."
+        : (err.message || "Couldn't start a session. Please try again."));
       startBtn.disabled = false;
       startBtn.textContent = "Start session";
     }
   }
 
-  function resetSession() {
+  function resetSession(errorMessage) {
+    // Tell the server to free this session's resume and history (best effort).
+    if (threadId) {
+      fetch(`${API_BASE}/session/${encodeURIComponent(threadId)}`, {
+        method: "DELETE",
+        keepalive: true,
+      }).catch(() => {});
+    }
+
     threadId = null;
     lastUserText = null;
+    busy = false;
+    sendBtn.disabled = false;
     messagesEl.innerHTML = "";
     chipsEl.innerHTML = "";
     sessionBadge.style.display = "none";
@@ -470,9 +564,18 @@
     setupEl.style.display = "flex";
     document.getElementById("company").value = "";
     document.getElementById("role").value = "";
-    setupError.style.display = "none";
-    document.getElementById("start-btn").disabled = false;
-    document.getElementById("start-btn").textContent = "Start session";
+    document.getElementById("resume").value = "";
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    startBtn.disabled = false;
+    startBtn.textContent = "Start session";
+
+    // The button passes a click event as the first argument, so only accept strings.
+    if (typeof errorMessage === "string" && errorMessage) {
+      showSetupError(errorMessage);
+    } else {
+      setupError.style.display = "none";
+    }
   }
 
   function renderChips() {
@@ -486,17 +589,21 @@
     });
   }
 
-  async function sendMessage(overrideText) {
-    const text = (overrideText ?? inputEl.value).trim();
-    if (!text || !threadId) return;
+  // isRetry = true re-sends the last message without adding a second copy of
+  // it to the chat window.
+  async function sendMessage(overrideText, isRetry = false) {
+    if (busy || !threadId) return;
 
+    const text = (overrideText ?? inputEl.value).trim();
+    if (!text) return;
+
+    busy = true;
     lastUserText = text;
     chipsEl.innerHTML = "";
-    addMessage("user", text);
+    if (!isRetry) addMessage("user", text);
     inputEl.value = "";
     inputEl.style.height = "auto";
 
-    const sendBtn = document.getElementById("send-btn");
     sendBtn.disabled = true;
     const typingRow = addTypingIndicator();
 
@@ -510,17 +617,22 @@
       typingRow.remove();
 
       if (!res.ok) {
-        // Surface the real backend message instead of a generic one, so
-        // problems (like the AI provider rate-limiting us) are actually
-        // visible instead of looking like a broken app.
+        // The server restarted or the session was cleaned up: send the
+        // user back to the setup screen to upload their resume again.
+        if (res.status === 404) {
+          resetSession("Your session expired. Please start a new session and upload your resume again.");
+          return;
+        }
+
+        // Surface the real backend message instead of a generic one.
         let detail = `Request failed (${res.status}).`;
         try {
           const errBody = await res.json();
-          if (errBody && errBody.detail) detail = errBody.detail;
+          if (errBody && typeof errBody.detail === "string") detail = errBody.detail;
         } catch (_) {
           // response wasn't JSON — keep the generic message
         }
-        const isRetryable = res.status === 503 || res.status === 429;
+        const isRetryable = res.status >= 500 || res.status === 429;
         addMessage("ai", detail, { isError: true, showRetry: isRetryable });
         return;
       }
@@ -535,7 +647,8 @@
         { isError: true, showRetry: true }
       );
     } finally {
-      sendBtn.disabled = false;
+      busy = false;
+      if (threadId) sendBtn.disabled = false;
     }
   }
 
@@ -555,6 +668,7 @@
       </div>
     `;
     messagesEl.appendChild(row);
+    nearBottom = true;
     scrollToBottomIfNeeded();
     return row;
   }
@@ -584,9 +698,13 @@
       const copyBtn = document.createElement("button");
       copyBtn.className = "copy-btn";
       copyBtn.textContent = "Copy";
-      copyBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(text);
-        copyBtn.textContent = "Copied";
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = "Copied";
+        } catch (_) {
+          copyBtn.textContent = "Copy failed";
+        }
         setTimeout(() => (copyBtn.textContent = "Copy"), 1200);
       });
       meta.appendChild(copyBtn);
@@ -595,7 +713,10 @@
         const retryBtn = document.createElement("button");
         retryBtn.className = "retry-btn";
         retryBtn.textContent = "Retry";
-        retryBtn.addEventListener("click", () => sendMessage(lastUserText));
+        retryBtn.addEventListener("click", () => {
+          row.remove(); // drop the old error message, then try again
+          sendMessage(lastUserText, true);
+        });
         meta.appendChild(retryBtn);
       }
 
@@ -617,10 +738,8 @@
 
   // Minimal, safe markdown rendering: escapes HTML first, then adds
   // support for **bold**, "- " bullet lists, and paragraph breaks.
-  // This is intentionally small - not a full markdown parser - since
-  // LLM output here only ever needs these basic elements.
   function renderMarkdownLite(raw) {
-    const escaped = escapeHtml(raw);
+    const escaped = escapeHtml(String(raw ?? ""));
     const lines = escaped.split("\n");
     let html = "";
     let inList = false;

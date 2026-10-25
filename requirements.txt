@@ -1,14 +1,11 @@
 fastapi
 uvicorn[standard]
 pydantic
+python-multipart
 python-dotenv
 langgraph
-langchain
+langchain-core
 langchain-groq
 langchain-tavily
 langchain-community
-langchain-text-splitters
-faiss-cpu
 pypdf
-groq
-requests
