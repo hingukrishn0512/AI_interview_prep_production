@@ -5,17 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Interview Prep Coach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #12141c;
-    --panel: #1b1e2a;
-    --input-bg: #232739;
-    --text: #e8e6df;
-    --muted: #8a8fa3;
+    --bg: #0b0d14;
+    --bg-elevated: #121622;
+    --panel: #171c2b;
+    --panel-hover: #1d2336;
+    --input-bg: #111521;
+    --text: #eef0f6;
+    --text-soft: #c7ccda;
+    --muted: #8b93ab;
     --accent: #e8a33d;
-    --accent-dim: #b97f2e;
-    --hairline: rgba(232, 230, 223, 0.1);
+    --accent-hover: #f2b454;
+    --accent-soft: rgba(232, 163, 61, 0.14);
+    --danger: #f08065;
+    --danger-soft: rgba(240, 128, 101, 0.12);
+    --success: #4cc38a;
+    --hairline: rgba(255, 255, 255, 0.08);
+    --hairline-strong: rgba(255, 255, 255, 0.15);
+    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+    --radius-lg: 16px;
+    --radius-md: 10px;
   }
 
   * { box-sizing: border-box; }
@@ -29,30 +40,71 @@
   body {
     position: fixed;
     inset: 0;
-    background: var(--bg);
+    background:
+      radial-gradient(900px 500px at 50% -120px, rgba(232, 163, 61, 0.11), transparent 65%),
+      radial-gradient(600px 400px at 100% 100%, rgba(86, 118, 224, 0.08), transparent 65%),
+      var(--bg);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     height: 100dvh;
     display: flex;
     justify-content: center;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
   .app {
     width: 100%;
-    max-width: 680px;
+    max-width: 840px;
     height: 100dvh;
     display: flex;
     flex-direction: column;
+    background: rgba(18, 22, 34, 0.55);
+    backdrop-filter: blur(14px);
   }
 
+  @media (min-width: 860px) {
+    .app {
+      border-left: 1px solid var(--hairline);
+      border-right: 1px solid var(--hairline);
+    }
+  }
+
+  /* --- Header --- */
+
   header {
-    padding: calc(18px + env(safe-area-inset-top)) 20px 18px;
+    padding: calc(14px + env(safe-area-inset-top)) 22px 14px;
     border-bottom: 1px solid var(--hairline);
+    background: rgba(15, 18, 28, 0.85);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 14px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .brand-row {
+    display: flex;
+    align-items: center;
     gap: 12px;
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(232, 163, 61, 0.24), rgba(232, 163, 61, 0.06));
+    border: 1px solid rgba(232, 163, 61, 0.35);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    font-size: 16px;
     flex-shrink: 0;
   }
 
@@ -61,23 +113,38 @@
   .header-text h1 {
     font-family: 'Source Serif 4', serif;
     font-weight: 600;
-    font-size: 18px;
-    margin: 0 0 3px;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    margin: 0 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-text p {
     margin: 0;
     color: var(--muted);
-    font-size: 12.5px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   #session-badge {
     display: none;
+    margin-top: 4px;
     color: var(--accent);
-    font-size: 12.5px;
+    background: var(--accent-soft);
+    border: 1px solid rgba(232, 163, 61, 0.28);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    width: fit-content;
   }
 
   .header-actions {
@@ -88,19 +155,25 @@
 
   .header-btn {
     display: none;
-    background: none;
+    background: var(--panel);
     border: 1px solid var(--hairline);
-    color: var(--muted);
-    border-radius: 6px;
-    padding: 6px 12px;
+    color: var(--text-soft);
+    border-radius: 8px;
+    padding: 7px 12px;
     font-family: inherit;
     font-size: 12.5px;
+    font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
-  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .header-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--panel-hover);
+  }
 
-  /* --- Shared screen layout --- */
+  /* --- Shared screens --- */
 
   .screen {
     display: none;
@@ -110,61 +183,196 @@
 
   #auth, #setup, #history {
     flex-direction: column;
-    justify-content: center;
-    padding: 20px;
-    gap: 18px;
+    padding: 24px 20px;
     overflow-y: auto;
   }
 
-  .lede {
-    font-family: 'Source Serif 4', serif;
-    font-size: 19px;
-    line-height: 1.5;
-    max-width: 46ch;
-    margin: 0;
+  #auth, #setup {
+    justify-content: center;
+    align-items: center;
   }
 
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 13px; color: var(--muted); }
+  .card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-lg);
+    padding: 28px 26px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
 
-  .field input {
+  .card.wide { max-width: 520px; }
+
+  .card-header h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .card-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  /* --- Auth segmented tabs --- */
+
+  .auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     background: var(--input-bg);
     border: 1px solid var(--hairline);
-    border-radius: 6px;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .auth-tab {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .auth-tab.active {
+    background: var(--panel-hover);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  /* --- Form fields --- */
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-soft);
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .field input[type="email"],
+  .field input[type="password"],
+  .field input[type="text"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
     padding: 11px 13px;
     color: var(--text);
     font-family: inherit;
-    font-size: 14.5px;
+    font-size: 14px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .field input:focus { outline: none; border-color: var(--accent); }
+  .field input.has-toggle { padding-right: 60px; }
 
-  .field input[type="file"] { padding: 9px 11px; font-size: 13px; }
-  .field input[type="file"]::file-selector-button {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--hairline);
-    border-radius: 5px;
-    padding: 5px 10px;
-    margin-right: 10px;
-    cursor: pointer;
+  .field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.14);
+  }
+
+  .pw-toggle {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
     font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .pw-toggle:hover { color: var(--text); }
+
+  /* Styled file picker */
+  .file-drop {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--input-bg);
+    border: 1px dashed var(--hairline-strong);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .file-drop:hover {
+    border-color: var(--accent);
+    background: rgba(232, 163, 61, 0.04);
+  }
+  .file-drop input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .file-drop-name {
+    font-size: 13.5px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-drop-name.selected { color: var(--text); font-weight: 500; }
+  .file-drop-btn {
+    background: var(--panel);
+    border: 1px solid var(--hairline-strong);
+    color: var(--text-soft);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
   }
 
-  .hint { color: var(--muted); font-size: 12px; margin: 0; }
+  .hint {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+  }
 
   button.primary {
-    background: var(--accent);
-    color: #1b1400;
+    background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+    color: #1a1200;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     padding: 12px 18px;
     font-family: inherit;
-    font-size: 14.5px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    transition: filter 0.15s, transform 0.08s;
   }
-  button.primary:hover { background: var(--accent-dim); }
-  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary:hover { filter: brightness(1.05); }
+  button.primary:active { transform: translateY(1px); }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
 
   .link-btn {
     background: none;
@@ -172,75 +380,174 @@
     color: var(--accent);
     font-family: inherit;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     padding: 0;
     text-align: left;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
   .link-btn:hover { text-decoration: underline; }
 
-  .form-error { color: #e88a5f; font-size: 13px; display: none; margin: 0; }
+  .form-error {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border: 1px solid rgba(240, 128, 101, 0.3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    display: none;
+    margin: 0;
+  }
+
+  .auth-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--hairline);
+  }
+  .auth-pill {
+    font-size: 11.5px;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
 
   /* --- History screen --- */
 
-  #history { justify-content: flex-start; }
+  #history {
+    justify-content: flex-start;
+    gap: 16px;
+  }
 
   .history-title {
     font-family: 'Source Serif 4', serif;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     margin: 0;
   }
 
-  #history-list { display: flex; flex-direction: column; gap: 8px; }
+  #history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
   .history-item {
     background: var(--panel);
     border: 1px solid var(--hairline);
-    border-radius: 8px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 14px 16px;
     color: var(--text);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 14.5px;
+    font-weight: 500;
     text-align: left;
     cursor: pointer;
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
   }
-  .history-item:hover { border-color: var(--accent); }
-  .history-item small { color: var(--muted); font-size: 12px; }
+  .history-item:hover {
+    border-color: var(--accent);
+    background: var(--panel-hover);
+    transform: translateY(-1px);
+  }
+  .history-item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .history-item-meta span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-item small {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .history-arrow {
+    color: var(--muted);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
 
   #history-detail {
     display: none;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
   }
 
-  .history-actions { display:flex; flex-wrap:wrap; gap:10px; }
-  .history-action-btn { border:1px solid var(--hairline); border-radius:6px; padding:9px 13px; font-family:inherit; font-size:13px; cursor:pointer; background:var(--panel); color:var(--text); }
-  .history-action-btn.primary-action { background:var(--accent); color:#1b1400; border-color:var(--accent); font-weight:600; }
-  .history-action-btn.danger-action { color:#e88a5f; }
-  .history-action-btn:disabled { opacity:.5; cursor:not-allowed; }
-  .history-status { color:var(--muted); font-size:12px; margin:0; }
+  .history-detail-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .history-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .history-action-btn {
+    border: 1px solid var(--hairline-strong);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .history-action-btn:hover { background: var(--panel-hover); }
+  .history-action-btn.primary-action {
+    background: var(--accent);
+    color: #1b1400;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .history-action-btn.primary-action:hover { background: var(--accent-hover); }
+  .history-action-btn.danger-action {
+    color: var(--danger);
+    border-color: rgba(240, 128, 101, 0.3);
+  }
+  .history-action-btn.danger-action:hover { background: var(--danger-soft); }
+  .history-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .history-status { color: var(--muted); font-size: 12.5px; margin: 0; line-height: 1.4; }
 
   /* --- Chat screen --- */
 
-  #chat-screen { flex-direction: column; }
+  #chat-screen {
+    flex-direction: column;
+    position: relative;
+  }
 
   #messages {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 22px 22px 14px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 20px;
   }
 
   .row {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: flex-start;
-    animation: rise 0.25s ease-out;
+    animation: rise 0.22s ease-out;
   }
   .row.user { flex-direction: row-reverse; }
 
@@ -250,9 +557,9 @@
   }
 
   .avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -262,43 +569,101 @@
     margin-top: 2px;
   }
   .avatar.ai {
-    background: rgba(232, 163, 61, 0.15);
+    background: var(--accent-soft);
+    border: 1px solid rgba(232, 163, 61, 0.32);
     color: var(--accent);
+    font-family: 'Source Serif 4', serif;
+    font-size: 14px;
   }
   .avatar.user {
     background: var(--panel);
-    border: 1px solid var(--hairline);
-    color: var(--muted);
+    border: 1px solid var(--hairline-strong);
+    color: var(--text-soft);
   }
 
-  .bubble-wrap { max-width: 82%; display: flex; flex-direction: column; gap: 4px; }
+  .bubble-wrap {
+    max-width: 82%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
   .row.user .bubble-wrap { align-items: flex-end; }
+
+  .agent-tag {
+    display: inline-block;
+    width: fit-content;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(232, 163, 61, 0.25);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
 
   .bubble {
     font-size: 14.5px;
-    line-height: 1.6;
+    line-height: 1.65;
     overflow-wrap: anywhere;
+    color: var(--text);
+  }
+  .row.ai .bubble {
+    background: var(--bg-elevated);
+    border: 1px solid var(--hairline);
+    border-radius: 4px 14px 14px 14px;
+    padding: 13px 16px;
   }
   .row.user .bubble {
-    background: var(--panel);
-    border: 1px solid var(--hairline);
-    border-radius: 12px 12px 2px 12px;
-    padding: 10px 14px;
+    background: linear-gradient(135deg, #232a40, #1c2235);
+    border: 1px solid var(--hairline-strong);
+    border-radius: 14px 4px 14px 14px;
+    padding: 11px 15px;
     white-space: pre-wrap;
   }
-  .bubble.error { color: #e88a5f; }
-  .bubble p { margin: 0 0 8px; }
+  .bubble.error {
+    color: var(--danger);
+    border-color: rgba(240, 128, 101, 0.35);
+    background: var(--danger-soft);
+  }
+
+  .bubble p { margin: 0 0 10px; }
   .bubble p:last-child { margin-bottom: 0; }
-  .bubble ul { margin: 4px 0 8px; padding-left: 20px; }
-  .bubble li { margin-bottom: 3px; }
-  .bubble strong { color: var(--text); font-weight: 600; }
+  .bubble ul { margin: 4px 0 10px; padding-left: 20px; }
+  .bubble li { margin-bottom: 4px; }
+  .bubble strong { color: #ffffff; font-weight: 600; }
+  .bubble code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12.5px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+  .bubble pre {
+    background: #0a0c12;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .bubble pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
 
   .msg-meta {
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--muted);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    padding-left: 2px;
   }
 
   .copy-btn, .retry-btn {
@@ -306,16 +671,22 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 11.5px;
     font-family: inherit;
-    padding: 0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
   }
-  .copy-btn:hover, .retry-btn:hover { color: var(--accent); }
+  .copy-btn:hover, .retry-btn:hover {
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .copy-btn.copied { color: var(--success); }
 
   .typing-dots {
     display: flex;
-    gap: 4px;
-    padding: 4px 0;
+    gap: 5px;
+    padding: 4px 2px;
   }
   .typing-dots span {
     width: 6px;
@@ -328,7 +699,7 @@
   .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
 
   @keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
     30% { transform: translateY(-4px); opacity: 1; }
   }
 
@@ -338,65 +709,105 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 0 20px 16px;
+    padding: 4px 22px 14px;
     flex-shrink: 0;
   }
   #chips:empty { padding: 0; }
   .chip {
     background: var(--panel);
-    border: 1px solid var(--hairline);
-    color: var(--text);
-    border-radius: 16px;
-    padding: 7px 13px;
+    border: 1px solid var(--hairline-strong);
+    color: var(--text-soft);
+    border-radius: 999px;
+    padding: 8px 14px;
     font-size: 12.5px;
     font-family: inherit;
     cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--panel-hover);
+  }
 
   /* --- Composer --- */
+
+  .composer-shell {
+    padding: 12px 22px calc(16px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--hairline);
+    background: rgba(15, 18, 28, 0.9);
+    flex-shrink: 0;
+  }
 
   #composer {
     display: flex;
     gap: 10px;
-    padding: 14px 20px calc(18px + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--hairline);
-    flex-shrink: 0;
     align-items: flex-end;
+    background: var(--input-bg);
+    border: 1px solid var(--hairline-strong);
+    border-radius: 14px;
+    padding: 8px 8px 8px 14px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  #composer:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.12);
   }
 
   #user-input {
     flex: 1;
-    background: var(--input-bg);
-    border: 1px solid var(--hairline);
-    border-radius: 10px;
-    padding: 12px 14px;
+    background: transparent;
+    border: none;
+    padding: 6px 0;
     color: var(--text);
     font-family: inherit;
     font-size: 14.5px;
     resize: none;
-    max-height: 120px;
-    line-height: 1.4;
+    max-height: 130px;
+    line-height: 1.45;
   }
-  #user-input:focus { outline: none; border-color: var(--accent); }
+  #user-input:focus { outline: none; }
+  #user-input::placeholder { color: var(--muted); }
 
   #send-btn {
-    background: var(--accent);
+    background: linear-gradient(180deg, var(--accent-hover), var(--accent));
     color: #1b1400;
     border: none;
     border-radius: 10px;
-    padding: 12px 18px;
+    padding: 9px 16px;
     font-family: inherit;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13.5px;
     cursor: pointer;
     flex-shrink: 0;
+    transition: filter 0.15s;
   }
-  #send-btn:hover { background: var(--accent-dim); }
-  #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #send-btn:hover { filter: brightness(1.06); }
+  #send-btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+
+  .composer-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    padding: 0 4px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    header { padding: calc(12px + env(safe-area-inset-top)) 14px 12px; }
+    .header-btn { padding: 6px 9px; font-size: 12px; }
+    #messages { padding: 16px 14px 10px; }
+    .bubble-wrap { max-width: 88%; }
+    #chips { padding: 4px 14px 12px; }
+    .composer-shell { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
+    .composer-foot { display: none; }
+    .card { padding: 22px 18px; }
+  }
 
   #messages::-webkit-scrollbar { width: 6px; }
-  #messages::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 3px; }
+  #messages::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 3px; }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -407,10 +818,13 @@
 
 <div class="app">
   <header>
-    <div class="header-text">
-      <h1>AI Interview Prep Coach</h1>
-      <p id="header-sub">Practice questions, company research, and resume checks.</p>
-      <div id="session-badge"></div>
+    <div class="brand-row">
+      <div class="brand-mark">AI</div>
+      <div class="header-text">
+        <h1>AI Interview Prep Coach</h1>
+        <p id="header-sub">Practice questions, company research, and resume checks.</p>
+        <div id="session-badge"></div>
+      </div>
     </div>
     <div class="header-actions">
       <button class="header-btn" id="history-btn">History</button>
@@ -421,57 +835,96 @@
 
   <!-- Login / Register -->
   <section id="auth" class="screen">
-    <p class="lede" id="auth-lede">Log in to start practicing and keep your session history.</p>
-    <div class="field">
-      <label for="auth-email">Email</label>
-      <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+    <div class="card">
+      <div class="card-header">
+        <h2 id="auth-title">Welcome back</h2>
+        <p id="auth-lede">Log in to start practicing and keep your session history.</p>
+      </div>
+
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab active" id="auth-tab-login">Log in</button>
+        <button type="button" class="auth-tab" id="auth-tab-register">Create account</button>
+      </div>
+
+      <div class="field">
+        <label for="auth-email">Email</label>
+        <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label for="auth-password">Password</label>
+        <div class="input-wrap">
+          <input id="auth-password" class="has-toggle" type="password" placeholder="At least 8 characters" autocomplete="current-password">
+          <button type="button" class="pw-toggle" id="toggle-password">Show</button>
+        </div>
+        <p class="hint" id="auth-hint" style="display:none;">Use 8 to 72 characters.</p>
+      </div>
+
+      <button class="primary" id="auth-submit">Log in</button>
+      <p id="auth-error" class="form-error"></p>
+
+      <div class="auth-features">
+        <span class="auth-pill">DSA Practice</span>
+        <span class="auth-pill">Behavioral Qs</span>
+        <span class="auth-pill">Company Research</span>
+        <span class="auth-pill">Resume Gap Check</span>
+      </div>
     </div>
-    <div class="field">
-      <label for="auth-password">Password</label>
-      <input id="auth-password" type="password" placeholder="At least 8 characters" autocomplete="current-password">
-      <p class="hint" id="auth-hint" style="display:none;">Use 8 to 72 characters.</p>
-    </div>
-    <button class="primary" id="auth-submit">Log in</button>
-    <button class="link-btn" id="auth-toggle">New here? Create an account</button>
-    <p id="auth-error" class="form-error"></p>
   </section>
 
   <!-- Session setup -->
   <section id="setup" class="screen">
-    <p class="lede">Tell me who you’re preparing for and upload your resume, and I’ll tailor everything to you.</p>
-    <div class="field">
-      <label for="company">Company</label>
-      <input id="company" type="text" placeholder="e.g. Google" autocomplete="off">
+    <div class="card wide">
+      <div class="card-header">
+        <h2>Start a prep session</h2>
+        <p>Tell me who you’re preparing for and upload your resume, and I’ll tailor everything to you.</p>
+      </div>
+
+      <div class="field">
+        <label for="company">Company</label>
+        <input id="company" type="text" placeholder="e.g. Google" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="role">Role</label>
+        <input id="role" type="text" placeholder="e.g. Machine Learning Engineer Intern" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="resume">Resume (PDF)</label>
+        <label class="file-drop" for="resume">
+          <span class="file-drop-name" id="resume-file-name">Choose a text-based PDF (max 5 MB)</span>
+          <span class="file-drop-btn">Browse</span>
+          <input id="resume" type="file" accept="application/pdf,.pdf">
+        </label>
+        <p class="hint">Used only for this session to tailor answers. Max 5 MB, text-based PDF (not a scan).</p>
+      </div>
+
+      <button class="primary" id="start-btn">Start session</button>
+      <p id="setup-error" class="form-error"></p>
     </div>
-    <div class="field">
-      <label for="role">Role</label>
-      <input id="role" type="text" placeholder="e.g. Machine Learning Engineer Intern" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="resume">Resume (PDF)</label>
-      <input id="resume" type="file" accept="application/pdf,.pdf">
-      <p class="hint">Used only for this session to tailor answers. Max 5 MB, text-based PDF (not a scan).</p>
-    </div>
-    <button class="primary" id="start-btn">Start session</button>
-    <p id="setup-error" class="form-error"></p>
   </section>
 
   <!-- Past sessions -->
   <section id="history" class="screen">
     <div id="history-list-view">
       <button class="link-btn" id="history-close">&larr; Back</button>
-      <h2 class="history-title" style="margin-top:14px;">Your past sessions</h2>
+      <h2 class="history-title" style="margin-top:12px;">Your past sessions</h2>
+      <p class="hint" style="margin-top:4px;">Reopen any session with active resume data, or clean up old chats.</p>
       <div id="history-list" style="margin-top:14px;"></div>
     </div>
+
     <div id="history-detail">
       <button class="link-btn" id="history-back">&larr; All sessions</button>
-      <h2 class="history-title" id="history-detail-title"></h2>
-      <div class="history-actions" id="history-actions" style="display:none;">
-        <button class="history-action-btn primary-action" id="continue-session-btn">Continue this session</button>
-        <button class="history-action-btn danger-action" id="delete-resume-btn">Delete resume data</button>
-        <button class="history-action-btn danger-action" id="delete-chat-btn">Delete chat</button>
+      <div class="history-detail-card">
+        <h2 class="history-title" id="history-detail-title"></h2>
+        <div class="history-actions" id="history-actions" style="display:none;">
+          <button class="history-action-btn primary-action" id="continue-session-btn">Continue this session</button>
+          <button class="history-action-btn danger-action" id="delete-resume-btn">Delete resume data</button>
+          <button class="history-action-btn danger-action" id="delete-chat-btn">Delete chat</button>
+        </div>
+        <p class="history-status" id="history-status"></p>
       </div>
-      <p class="history-status" id="history-status"></p>
       <div id="history-messages" style="display:flex;flex-direction:column;gap:18px;"></div>
     </div>
   </section>
@@ -480,9 +933,15 @@
   <section id="chat-screen" class="screen">
     <div id="messages"></div>
     <div id="chips"></div>
-    <div id="composer">
-      <textarea id="user-input" rows="1" maxlength="2000" placeholder="Message the coach..."></textarea>
-      <button id="send-btn">Send</button>
+    <div class="composer-shell">
+      <div id="composer">
+        <textarea id="user-input" rows="1" maxlength="2000" placeholder="Message the coach..."></textarea>
+        <button id="send-btn">Send</button>
+      </div>
+      <div class="composer-foot">
+        <span>Enter to send &middot; Shift+Enter for new line</span>
+        <span id="char-count">0 / 2000</span>
+      </div>
     </div>
   </section>
 </div>
@@ -517,15 +976,20 @@
   const authError = document.getElementById("auth-error");
   const chipsEl = document.getElementById("chips");
   const inputEl = document.getElementById("user-input");
+  const charCountEl = document.getElementById("char-count");
   const sendBtn = document.getElementById("send-btn");
   const startBtn = document.getElementById("start-btn");
   const resetBtn = document.getElementById("reset-btn");
   const logoutBtn = document.getElementById("logout-btn");
   const historyBtn = document.getElementById("history-btn");
   const authSubmit = document.getElementById("auth-submit");
-  const authToggle = document.getElementById("auth-toggle");
+  const authTabLogin = document.getElementById("auth-tab-login");
+  const authTabRegister = document.getElementById("auth-tab-register");
   const authEmail = document.getElementById("auth-email");
   const authPassword = document.getElementById("auth-password");
+  const togglePasswordBtn = document.getElementById("toggle-password");
+  const resumeInput = document.getElementById("resume");
+  const resumeFileName = document.getElementById("resume-file-name");
 
   const SUGGESTIONS = [
     "Give me a DSA question",
@@ -533,6 +997,14 @@
     "Tell me about the company's interview process",
     "What should I brush up on in my resume?",
   ];
+
+  const AGENT_LABELS = {
+    dsa: "DSA",
+    behavioral: "Behavioral",
+    company_research: "Company Research",
+    resume_gap: "Resume Coach",
+    general_chat: "Coach",
+  };
 
   // iOS/Android will forcibly scroll the page to keep a focused input above
   // the on-screen keyboard, even though body/html are pinned with
@@ -555,7 +1027,27 @@
   logoutBtn.addEventListener("click", logout);
   historyBtn.addEventListener("click", openHistory);
   authSubmit.addEventListener("click", submitAuth);
-  authToggle.addEventListener("click", toggleAuthMode);
+  authTabLogin.addEventListener("click", () => setAuthMode("login"));
+  authTabRegister.addEventListener("click", () => setAuthMode("register"));
+
+  togglePasswordBtn.addEventListener("click", () => {
+    const isHidden = authPassword.type === "password";
+    authPassword.type = isHidden ? "text" : "password";
+    togglePasswordBtn.textContent = isHidden ? "Hide" : "Show";
+  });
+
+  resumeInput.addEventListener("change", () => {
+    const file = resumeInput.files[0];
+    if (file) {
+      const sizeKb = Math.max(1, Math.round(file.size / 1024));
+      resumeFileName.textContent = `${file.name} (${sizeKb} KB)`;
+      resumeFileName.classList.add("selected");
+    } else {
+      resumeFileName.textContent = "Choose a text-based PDF (max 5 MB)";
+      resumeFileName.classList.remove("selected");
+    }
+  });
+
   document.getElementById("history-close").addEventListener("click", () => {
     showScreen(threadId ? "chat" : "setup");
   });
@@ -564,6 +1056,9 @@
   document.getElementById("delete-resume-btn").addEventListener("click", deleteHistoryResume);
   document.getElementById("delete-chat-btn").addEventListener("click", deleteHistoryChat);
 
+  authEmail.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitAuth();
+  });
   authPassword.addEventListener("keydown", (e) => {
     if (e.key === "Enter") submitAuth();
   });
@@ -576,7 +1071,8 @@
   });
   inputEl.addEventListener("input", () => {
     inputEl.style.height = "auto";
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 130) + "px";
+    charCountEl.textContent = `${inputEl.value.length} / 2000`;
   });
 
   messagesEl.addEventListener("scroll", () => {
@@ -641,25 +1137,30 @@
     chipsEl.innerHTML = "";
     document.getElementById("company").value = "";
     document.getElementById("role").value = "";
-    document.getElementById("resume").value = "";
+    resumeInput.value = "";
+    resumeFileName.textContent = "Choose a text-based PDF (max 5 MB)";
+    resumeFileName.classList.remove("selected");
     inputEl.value = "";
     inputEl.style.height = "auto";
+    charCountEl.textContent = "0 / 2000";
     startBtn.disabled = false;
     startBtn.textContent = "Start session";
   }
 
   // ---------- auth ----------
 
-  function toggleAuthMode() {
-    authMode = authMode === "login" ? "register" : "login";
+  function setAuthMode(mode) {
+    authMode = mode;
     const register = authMode === "register";
+    authTabLogin.classList.toggle("active", !register);
+    authTabRegister.classList.toggle("active", register);
     authSubmit.textContent = register ? "Create account" : "Log in";
-    authToggle.textContent = register ? "Already have an account? Log in" : "New here? Create an account";
-    document.getElementById("auth-hint").style.display = register ? "block" : "none";
-    authPassword.autocomplete = register ? "new-password" : "current-password";
+    document.getElementById("auth-title").textContent = register ? "Create your account" : "Welcome back";
     document.getElementById("auth-lede").textContent = register
       ? "Create an account so your sessions are saved to you."
       : "Log in to start practicing and keep your session history.";
+    document.getElementById("auth-hint").style.display = register ? "block" : "none";
+    authPassword.autocomplete = register ? "new-password" : "current-password";
     authError.style.display = "none";
   }
 
@@ -672,6 +1173,7 @@
     }
 
     authSubmit.disabled = true;
+    authSubmit.textContent = authMode === "register" ? "Creating account..." : "Logging in...";
     authError.style.display = "none";
 
     try {
@@ -700,6 +1202,8 @@
       localStorage.setItem(TOKEN_KEY, token);
       userEmail = email.toLowerCase();
       authPassword.value = "";
+      authPassword.type = "password";
+      togglePasswordBtn.textContent = "Show";
       enterApp();
     } catch (err) {
       const offline = err instanceof TypeError;
@@ -708,6 +1212,7 @@
         : (err.message || "Couldn't sign you in. Please try again."));
     } finally {
       authSubmit.disabled = false;
+      authSubmit.textContent = authMode === "register" ? "Create account" : "Log in";
     }
   }
 
@@ -763,7 +1268,7 @@
   async function startSession() {
     const company = document.getElementById("company").value.trim();
     const role = document.getElementById("role").value.trim();
-    const resumeFile = document.getElementById("resume").files[0];
+    const resumeFile = resumeInput.files[0];
 
     if (!company || !role || !resumeFile) {
       showError(setupError, "Please fill in both fields and upload your resume.");
@@ -813,9 +1318,6 @@
 
       addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
       renderChips();
-
-      // Don't auto-focus the composer here. Focusing immediately pops the
-      // mobile keyboard open mid-transition and pushes the header out of view.
     } catch (err) {
       if (err instanceof AuthError) return; // forceLogin already showed the login screen
       const offline = err instanceof TypeError; // fetch itself failed
@@ -860,12 +1362,19 @@
       sessions.forEach((s) => {
         const btn = document.createElement("button");
         btn.className = "history-item";
+        const meta = document.createElement("div");
+        meta.className = "history-item-meta";
         const title = document.createElement("span");
         title.textContent = s.title;
         const when = document.createElement("small");
         when.textContent = new Date(s.created_at).toLocaleString();
-        btn.appendChild(title);
-        btn.appendChild(when);
+        meta.appendChild(title);
+        meta.appendChild(when);
+        const arrow = document.createElement("span");
+        arrow.className = "history-arrow";
+        arrow.innerHTML = "&rsaquo;";
+        btn.appendChild(meta);
+        btn.appendChild(arrow);
         btn.addEventListener("click", () => openHistoryDetail(s));
         listEl.appendChild(btn);
       });
@@ -915,7 +1424,7 @@
 
       box.innerHTML = "";
       if (msgs.length === 0) box.innerHTML = `<p class="hint">This session has no messages yet.</p>`;
-      msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content, { container: box }));
+      msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content, { container: box, agent: m.agent }));
 
       selectedSessionCanContinue = !!state.can_continue;
       actions.style.display = "flex";
@@ -957,7 +1466,7 @@
         addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
         renderChips();
       } else {
-        msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content));
+        msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content, { agent: m.agent }));
         chipsEl.innerHTML = "";
       }
       sessionBadge.textContent = session.title;
@@ -966,6 +1475,7 @@
       scrollToBottomIfNeeded();
       inputEl.value = "";
       inputEl.style.height = "auto";
+      charCountEl.textContent = "0 / 2000";
       inputEl.focus();
     } catch (err) {
       if (!(err instanceof AuthError)) alert(err.message || "Couldn't continue this session.");
@@ -1039,12 +1549,14 @@
     const text = (overrideText ?? inputEl.value).trim();
     if (!text) return;
 
+    const requestThreadId = threadId;
     busy = true;
     lastUserText = text;
     chipsEl.innerHTML = "";
     if (!isRetry) addMessage("user", text);
     inputEl.value = "";
     inputEl.style.height = "auto";
+    charCountEl.textContent = "0 / 2000";
 
     sendBtn.disabled = true;
     const typingRow = addTypingIndicator();
@@ -1053,10 +1565,11 @@
       const res = await authFetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thread_id: threadId, user_input: text }),
+        body: JSON.stringify({ thread_id: requestThreadId, user_input: text }),
       });
 
       typingRow.remove();
+      if (threadId !== requestThreadId) return;
 
       if (!res.ok) {
         // The server restarted or the session was cleaned up: send the
@@ -1074,18 +1587,20 @@
       }
 
       const data = await res.json();
-      addMessage("ai", data.final_result);
+      addMessage("ai", data.final_result, { agent: data.classifier });
     } catch (err) {
       typingRow.remove();
-      if (err instanceof AuthError) return; // forceLogin already switched screens
+      if (err instanceof AuthError || threadId !== requestThreadId) return;
       addMessage(
         "ai",
         "Couldn't reach the server. Check your connection and try again.",
         { isError: true, showRetry: true }
       );
     } finally {
-      busy = false;
-      if (threadId) sendBtn.disabled = false;
+      if (threadId === requestThreadId) {
+        busy = false;
+        sendBtn.disabled = false;
+      }
     }
   }
 
@@ -1101,7 +1616,7 @@
     row.innerHTML = `
       <div class="avatar ai">C</div>
       <div class="bubble-wrap">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
       </div>
     `;
     messagesEl.appendChild(row);
@@ -1119,10 +1634,17 @@
 
     const avatar = document.createElement("div");
     avatar.className = `avatar ${role}`;
-    avatar.textContent = role === "ai" ? "C" : "Y";
+    avatar.textContent = role === "ai" ? "C" : (userEmail ? userEmail[0].toUpperCase() : "Y");
 
     const wrap = document.createElement("div");
     wrap.className = "bubble-wrap";
+
+    if (role === "ai" && !opts.isError && opts.agent && AGENT_LABELS[opts.agent]) {
+      const tag = document.createElement("span");
+      tag.className = "agent-tag";
+      tag.textContent = AGENT_LABELS[opts.agent];
+      wrap.appendChild(tag);
+    }
 
     const bubble = document.createElement("div");
     bubble.className = "bubble" + (opts.isError ? " error" : "");
@@ -1140,11 +1662,15 @@
       copyBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(text);
-          copyBtn.textContent = "Copied";
+          copyBtn.textContent = "Copied ✓";
+          copyBtn.classList.add("copied");
         } catch (_) {
           copyBtn.textContent = "Copy failed";
         }
-        setTimeout(() => (copyBtn.textContent = "Copy"), 1200);
+        setTimeout(() => {
+          copyBtn.textContent = "Copy";
+          copyBtn.classList.remove("copied");
+        }, 1400);
       });
       meta.appendChild(copyBtn);
 
@@ -1175,32 +1701,57 @@
     return div.innerHTML;
   }
 
-  // Minimal, safe markdown rendering: escapes HTML first, then adds
-  // support for **bold**, "- " bullet lists, and paragraph breaks.
+  // Safe markdown rendering: escapes HTML first, then supports fenced code
+  // blocks, inline code, **bold**, headings, "- " / "* " lists, and paragraphs.
   function renderMarkdownLite(raw) {
     const escaped = escapeHtml(String(raw ?? ""));
     const lines = escaped.split("\n");
     let html = "";
     let inList = false;
+    let inCode = false;
+    let codeLines = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
+      if (trimmed.startsWith("```")) {
+        if (inList) { html += "</ul>"; inList = false; }
+        if (!inCode) {
+          inCode = true;
+          codeLines = [];
+        } else {
+          html += `<pre><code>${codeLines.join("\n")}</code></pre>`;
+          inCode = false;
+          codeLines = [];
+        }
+        continue;
+      }
+
+      if (inCode) {
+        codeLines.push(line);
+        continue;
+      }
+
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
         if (!inList) { html += "<ul>"; inList = true; }
         html += `<li>${inlineFormat(trimmed.slice(2))}</li>`;
       } else {
         if (inList) { html += "</ul>"; inList = false; }
-        if (trimmed.length > 0) {
+        if (/^#{1,3}\s+/.test(trimmed)) {
+          html += `<p><strong>${inlineFormat(trimmed.replace(/^#{1,3}\s+/, ""))}</strong></p>`;
+        } else if (trimmed.length > 0) {
           html += `<p>${inlineFormat(trimmed)}</p>`;
         }
       }
     }
+    if (inCode) html += `<pre><code>${codeLines.join("\n")}</code></pre>`;
     if (inList) html += "</ul>";
     return html || `<p>${inlineFormat(escaped)}</p>`;
   }
 
   function inlineFormat(text) {
-    return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    return text
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
   // ---------- startup ----------
