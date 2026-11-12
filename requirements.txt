@@ -1,36 +1,6 @@
-fastapi
-uvicorn[standard]
-pydantic
-python-multipart
-python-dotenv
-langgraph
-langchain-core
-langchain-groq
-langchain-tavily
-langchain-community
-pypdf
-
-# Database (app data)
-sqlalchemy[asyncio]
-asyncpg
-alembic
-
-# LangGraph Postgres checkpointer (uses psycopg, not asyncpg)
-langgraph-checkpoint-postgres
-psycopg[binary,pool]
-
-# Auth
-pyjwt
-bcrypt
-email-validator
-
-# Redis (rate limiting)
-redis
-
-# Config and logging
-pydantic-settings
-structlog
-
+# Pinned from the working Docker image (Python 3.12, Linux).
+# Regenerate after adding a package:  docker compose exec api pip freeze
+# Render must use Python 3.12 (set PYTHON_VERSION) so these versions install.
 aiohappyeyeballs==2.7.1
 aiohttp==3.14.5
 aiosignal==1.4.0
@@ -76,7 +46,6 @@ langgraph-checkpoint-postgres==3.2.0
 langgraph-prebuilt==1.1.1
 langgraph-sdk==0.4.14
 langsmith==0.14.17
-limits==5.8.0
 Mako==1.4.3
 MarkupSafe==3.0.4
 multidict==7.2.1
@@ -100,7 +69,6 @@ PyYAML==6.0.3
 redis==8.1.0
 requests==2.34.2
 requests-toolbelt==1.0.0
-slowapi==0.1.10
 sniffio==1.3.1
 SQLAlchemy==2.1.8
 starlette==1.10.0
