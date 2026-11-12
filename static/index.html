@@ -52,8 +52,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     flex-shrink: 0;
   }
+
+  .header-text { min-width: 0; }
 
   .header-text h1 {
     font-family: 'Source Serif 4', serif;
@@ -72,9 +75,18 @@
     display: none;
     color: var(--accent);
     font-size: 12.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  #reset-btn {
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .header-btn {
     display: none;
     background: none;
     border: 1px solid var(--hairline);
@@ -84,14 +96,19 @@
     font-family: inherit;
     font-size: 12.5px;
     cursor: pointer;
+    white-space: nowrap;
   }
-  #reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* --- Setup screen --- */
+  /* --- Shared screen layout --- */
 
-  #setup {
+  .screen {
+    display: none;
     flex: 1;
-    display: flex;
+    min-height: 0;
+  }
+
+  #auth, #setup, #history {
     flex-direction: column;
     justify-content: center;
     padding: 20px;
@@ -99,7 +116,7 @@
     overflow-y: auto;
   }
 
-  #setup .lede {
+  .lede {
     font-family: 'Source Serif 4', serif;
     font-size: 19px;
     line-height: 1.5;
@@ -149,16 +166,66 @@
   button.primary:hover { background: var(--accent-dim); }
   button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  #setup-error { color: #e88a5f; font-size: 13px; display: none; margin: 0; }
+  .link-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+  }
+  .link-btn:hover { text-decoration: underline; }
+
+  .form-error { color: #e88a5f; font-size: 13px; display: none; margin: 0; }
+
+  /* --- History screen --- */
+
+  #history { justify-content: flex-start; }
+
+  .history-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  #history-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .history-item {
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item small { color: var(--muted); font-size: 12px; }
+
+  #history-detail {
+    display: none;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .history-actions { display:flex; flex-wrap:wrap; gap:10px; }
+  .history-action-btn { border:1px solid var(--hairline); border-radius:6px; padding:9px 13px; font-family:inherit; font-size:13px; cursor:pointer; background:var(--panel); color:var(--text); }
+  .history-action-btn.primary-action { background:var(--accent); color:#1b1400; border-color:var(--accent); font-weight:600; }
+  .history-action-btn.danger-action { color:#e88a5f; }
+  .history-action-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .history-status { color:var(--muted); font-size:12px; margin:0; }
 
   /* --- Chat screen --- */
 
-  #chat-screen {
-    display: none;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
+  #chat-screen { flex-direction: column; }
 
   #messages {
     flex: 1;
@@ -345,10 +412,32 @@
       <p id="header-sub">Practice questions, company research, and resume checks.</p>
       <div id="session-badge"></div>
     </div>
-    <button id="reset-btn">New session</button>
+    <div class="header-actions">
+      <button class="header-btn" id="history-btn">History</button>
+      <button class="header-btn" id="reset-btn">New session</button>
+      <button class="header-btn" id="logout-btn">Log out</button>
+    </div>
   </header>
 
-  <section id="setup">
+  <!-- Login / Register -->
+  <section id="auth" class="screen">
+    <p class="lede" id="auth-lede">Log in to start practicing and keep your session history.</p>
+    <div class="field">
+      <label for="auth-email">Email</label>
+      <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="auth-password">Password</label>
+      <input id="auth-password" type="password" placeholder="At least 8 characters" autocomplete="current-password">
+      <p class="hint" id="auth-hint" style="display:none;">Use 8 to 72 characters.</p>
+    </div>
+    <button class="primary" id="auth-submit">Log in</button>
+    <button class="link-btn" id="auth-toggle">New here? Create an account</button>
+    <p id="auth-error" class="form-error"></p>
+  </section>
+
+  <!-- Session setup -->
+  <section id="setup" class="screen">
     <p class="lede">Tell me who you’re preparing for and upload your resume, and I’ll tailor everything to you.</p>
     <div class="field">
       <label for="company">Company</label>
@@ -364,10 +453,31 @@
       <p class="hint">Used only for this session to tailor answers. Max 5 MB, text-based PDF (not a scan).</p>
     </div>
     <button class="primary" id="start-btn">Start session</button>
-    <p id="setup-error"></p>
+    <p id="setup-error" class="form-error"></p>
   </section>
 
-  <section id="chat-screen">
+  <!-- Past sessions -->
+  <section id="history" class="screen">
+    <div id="history-list-view">
+      <button class="link-btn" id="history-close">&larr; Back</button>
+      <h2 class="history-title" style="margin-top:14px;">Your past sessions</h2>
+      <div id="history-list" style="margin-top:14px;"></div>
+    </div>
+    <div id="history-detail">
+      <button class="link-btn" id="history-back">&larr; All sessions</button>
+      <h2 class="history-title" id="history-detail-title"></h2>
+      <div class="history-actions" id="history-actions" style="display:none;">
+        <button class="history-action-btn primary-action" id="continue-session-btn">Continue this session</button>
+        <button class="history-action-btn danger-action" id="delete-resume-btn">Delete resume data</button>
+        <button class="history-action-btn danger-action" id="delete-chat-btn">Delete chat</button>
+      </div>
+      <p class="history-status" id="history-status"></p>
+      <div id="history-messages" style="display:flex;flex-direction:column;gap:18px;"></div>
+    </div>
+  </section>
+
+  <!-- Live chat -->
+  <section id="chat-screen" class="screen">
     <div id="messages"></div>
     <div id="chips"></div>
     <div id="composer">
@@ -380,22 +490,42 @@
 <script>
   const API_BASE = "";
   const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+  const TOKEN_KEY = "coach_token";
 
+  let token = null;
+  let userEmail = null;
   let threadId = null;
   let nearBottom = true;
   let busy = false;        // true while a /chat request is in flight
   let lastUserText = null; // remembers the last message, for the Retry link on failure
+  let authMode = "login";  // "login" | "register"
+  let selectedHistorySession = null;
+  let selectedSessionCanContinue = false;
 
-  const setupEl = document.getElementById("setup");
-  const chatScreenEl = document.getElementById("chat-screen");
+  // Thrown by authFetch after a 401, so callers can stop quietly.
+  class AuthError extends Error {}
+
+  const screens = {
+    auth: document.getElementById("auth"),
+    setup: document.getElementById("setup"),
+    history: document.getElementById("history"),
+    chat: document.getElementById("chat-screen"),
+  };
   const sessionBadge = document.getElementById("session-badge");
   const messagesEl = document.getElementById("messages");
   const setupError = document.getElementById("setup-error");
+  const authError = document.getElementById("auth-error");
   const chipsEl = document.getElementById("chips");
   const inputEl = document.getElementById("user-input");
   const sendBtn = document.getElementById("send-btn");
   const startBtn = document.getElementById("start-btn");
   const resetBtn = document.getElementById("reset-btn");
+  const logoutBtn = document.getElementById("logout-btn");
+  const historyBtn = document.getElementById("history-btn");
+  const authSubmit = document.getElementById("auth-submit");
+  const authToggle = document.getElementById("auth-toggle");
+  const authEmail = document.getElementById("auth-email");
+  const authPassword = document.getElementById("auth-password");
 
   const SUGGESTIONS = [
     "Give me a DSA question",
@@ -421,7 +551,22 @@
 
   startBtn.addEventListener("click", startSession);
   sendBtn.addEventListener("click", () => sendMessage());
-  resetBtn.addEventListener("click", resetSession);
+  resetBtn.addEventListener("click", () => resetSession());
+  logoutBtn.addEventListener("click", logout);
+  historyBtn.addEventListener("click", openHistory);
+  authSubmit.addEventListener("click", submitAuth);
+  authToggle.addEventListener("click", toggleAuthMode);
+  document.getElementById("history-close").addEventListener("click", () => {
+    showScreen(threadId ? "chat" : "setup");
+  });
+  document.getElementById("history-back").addEventListener("click", showHistoryList);
+  document.getElementById("continue-session-btn").addEventListener("click", continueHistorySession);
+  document.getElementById("delete-resume-btn").addEventListener("click", deleteHistoryResume);
+  document.getElementById("delete-chat-btn").addEventListener("click", deleteHistoryChat);
+
+  authPassword.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitAuth();
+  });
 
   inputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -438,10 +583,157 @@
     nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
   });
 
-  function showSetupError(message) {
-    setupError.textContent = message;
-    setupError.style.display = "block";
+  // ---------- helpers ----------
+
+  function showScreen(name) {
+    for (const [key, el] of Object.entries(screens)) {
+      el.style.display = key === name ? "flex" : "none";
+    }
+    const loggedIn = !!token;
+    logoutBtn.style.display = loggedIn ? "block" : "none";
+    historyBtn.style.display = loggedIn && (name === "setup" || name === "chat") ? "block" : "none";
+    resetBtn.style.display = name === "chat" ? "block" : "none";
+    sessionBadge.style.display = name === "chat" ? "block" : "none";
   }
+
+  function showError(el, message) {
+    el.textContent = message;
+    el.style.display = "block";
+  }
+
+  function authHeaders(extra) {
+    return Object.assign({ Authorization: `Bearer ${token}` }, extra || {});
+  }
+
+  // Like fetch, but adds the login token. A 401 logs the user out and throws AuthError.
+  async function authFetch(url, opts) {
+    opts = opts || {};
+    opts.headers = authHeaders(opts.headers);
+    const res = await fetch(url, opts);
+    if (res.status === 401) {
+      forceLogin("Your login expired. Please log in again.");
+      throw new AuthError("unauthorized");
+    }
+    return res;
+  }
+
+  // Reads the server's error message. FastAPI returns a string for most errors
+  // and a list of objects for validation errors (422).
+  async function readError(res, fallback) {
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") return body.detail;
+      if (Array.isArray(body.detail) && body.detail[0] && body.detail[0].msg) {
+        return String(body.detail[0].msg).replace(/^Value error, /, "");
+      }
+    } catch (_) {
+      // response wasn't JSON — keep the fallback
+    }
+    return fallback;
+  }
+
+  function clearChatState() {
+    threadId = null;
+    lastUserText = null;
+    busy = false;
+    sendBtn.disabled = false;
+    messagesEl.innerHTML = "";
+    chipsEl.innerHTML = "";
+    document.getElementById("company").value = "";
+    document.getElementById("role").value = "";
+    document.getElementById("resume").value = "";
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    startBtn.disabled = false;
+    startBtn.textContent = "Start session";
+  }
+
+  // ---------- auth ----------
+
+  function toggleAuthMode() {
+    authMode = authMode === "login" ? "register" : "login";
+    const register = authMode === "register";
+    authSubmit.textContent = register ? "Create account" : "Log in";
+    authToggle.textContent = register ? "Already have an account? Log in" : "New here? Create an account";
+    document.getElementById("auth-hint").style.display = register ? "block" : "none";
+    authPassword.autocomplete = register ? "new-password" : "current-password";
+    document.getElementById("auth-lede").textContent = register
+      ? "Create an account so your sessions are saved to you."
+      : "Log in to start practicing and keep your session history.";
+    authError.style.display = "none";
+  }
+
+  async function submitAuth() {
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    if (!email || !password) {
+      showError(authError, "Please enter your email and password.");
+      return;
+    }
+
+    authSubmit.disabled = true;
+    authError.style.display = "none";
+
+    try {
+      let res;
+      if (authMode === "register") {
+        res = await fetch(`${API_BASE}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+      } else {
+        // The login endpoint expects a form body, with the email in the "username" field.
+        res = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ username: email, password }),
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error(await readError(res, "Couldn't sign you in. Please try again."));
+      }
+
+      const data = await res.json();
+      token = data.access_token;
+      localStorage.setItem(TOKEN_KEY, token);
+      userEmail = email.toLowerCase();
+      authPassword.value = "";
+      enterApp();
+    } catch (err) {
+      const offline = err instanceof TypeError;
+      showError(authError, offline
+        ? "Couldn't reach the server. Check your connection and try again."
+        : (err.message || "Couldn't sign you in. Please try again."));
+    } finally {
+      authSubmit.disabled = false;
+    }
+  }
+
+  function enterApp() {
+    document.getElementById("header-sub").textContent = userEmail
+      ? `Signed in as ${userEmail}`
+      : "Practice questions, company research, and resume checks.";
+    showScreen("setup");
+  }
+
+  // Used when the token is missing or rejected. Does not call the server.
+  function forceLogin(message) {
+    token = null;
+    userEmail = null;
+    localStorage.removeItem(TOKEN_KEY);
+    clearChatState();
+    document.getElementById("header-sub").textContent = "Practice questions, company research, and resume checks.";
+    showScreen("auth");
+    if (message) showError(authError, message);
+  }
+
+  function logout() {
+    forceLogin();
+  }
+
+  // ---------- server readiness ----------
 
   // Waits until the server's AI engine has finished loading (the server answers
   // /health straight away, but reports ready:false while it is still warming up).
@@ -466,21 +758,23 @@
     return false;
   }
 
+  // ---------- sessions ----------
+
   async function startSession() {
     const company = document.getElementById("company").value.trim();
     const role = document.getElementById("role").value.trim();
     const resumeFile = document.getElementById("resume").files[0];
 
     if (!company || !role || !resumeFile) {
-      showSetupError("Please fill in both fields and upload your resume.");
+      showError(setupError, "Please fill in both fields and upload your resume.");
       return;
     }
     if (!resumeFile.name.toLowerCase().endsWith(".pdf")) {
-      showSetupError("Please upload your resume as a PDF file.");
+      showError(setupError, "Please upload your resume as a PDF file.");
       return;
     }
     if (resumeFile.size > MAX_RESUME_BYTES) {
-      showSetupError("Resume is too large (max 5 MB).");
+      showError(setupError, "Resume is too large (max 5 MB).");
       return;
     }
 
@@ -505,28 +799,17 @@
       form.append("resume", resumeFile);
 
       // No Content-Type header here: the browser sets the multipart boundary itself.
-      const res = await fetch(`${API_BASE}/session`, { method: "POST", body: form });
+      const res = await authFetch(`${API_BASE}/session`, { method: "POST", body: form });
 
       if (!res.ok) {
-        let detail = "Couldn't start a session. Please try again.";
-        try {
-          const body = await res.json();
-          if (typeof body.detail === "string") detail = body.detail;
-        } catch (_) {
-          // response wasn't JSON — keep the generic message
-        }
-        throw new Error(detail);
+        throw new Error(await readError(res, "Couldn't start a session. Please try again."));
       }
 
       const data = await res.json();
       threadId = data.thread_id;
 
       sessionBadge.textContent = `${company} · ${role}`;
-      sessionBadge.style.display = "block";
-      resetBtn.style.display = "block";
-
-      setupEl.style.display = "none";
-      chatScreenEl.style.display = "flex";
+      showScreen("chat");
 
       addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
       renderChips();
@@ -534,8 +817,9 @@
       // Don't auto-focus the composer here. Focusing immediately pops the
       // mobile keyboard open mid-transition and pushes the header out of view.
     } catch (err) {
+      if (err instanceof AuthError) return; // forceLogin already showed the login screen
       const offline = err instanceof TypeError; // fetch itself failed
-      showSetupError(offline
+      showError(setupError, offline
         ? "Couldn't reach the server. Check your connection and try again."
         : (err.message || "Couldn't start a session. Please try again."));
       startBtn.disabled = false;
@@ -544,39 +828,197 @@
   }
 
   function resetSession(errorMessage) {
-    // Tell the server to free this session's resume and history (best effort).
-    if (threadId) {
-      fetch(`${API_BASE}/session/${encodeURIComponent(threadId)}`, {
-        method: "DELETE",
-        keepalive: true,
-      }).catch(() => {});
-    }
+    clearChatState();
+    showScreen("setup");
 
-    threadId = null;
-    lastUserText = null;
-    busy = false;
-    sendBtn.disabled = false;
-    messagesEl.innerHTML = "";
-    chipsEl.innerHTML = "";
-    sessionBadge.style.display = "none";
-    resetBtn.style.display = "none";
-    chatScreenEl.style.display = "none";
-    setupEl.style.display = "flex";
-    document.getElementById("company").value = "";
-    document.getElementById("role").value = "";
-    document.getElementById("resume").value = "";
-    inputEl.value = "";
-    inputEl.style.height = "auto";
-    startBtn.disabled = false;
-    startBtn.textContent = "Start session";
-
-    // The button passes a click event as the first argument, so only accept strings.
+    // Only accept strings, so a stray click event is never shown as an error.
     if (typeof errorMessage === "string" && errorMessage) {
-      showSetupError(errorMessage);
+      showError(setupError, errorMessage);
     } else {
       setupError.style.display = "none";
     }
   }
+
+  // ---------- history ----------
+
+  async function openHistory() {
+    showScreen("history");
+    showHistoryList();
+    const listEl = document.getElementById("history-list");
+    listEl.innerHTML = `<p class="hint">Loading...</p>`;
+
+    try {
+      const res = await authFetch(`${API_BASE}/sessions`);
+      if (!res.ok) throw new Error(await readError(res, "Couldn't load your sessions."));
+      const sessions = await res.json();
+
+      listEl.innerHTML = "";
+      if (sessions.length === 0) {
+        listEl.innerHTML = `<p class="hint">No sessions yet. Start one and it will show up here.</p>`;
+        return;
+      }
+      sessions.forEach((s) => {
+        const btn = document.createElement("button");
+        btn.className = "history-item";
+        const title = document.createElement("span");
+        title.textContent = s.title;
+        const when = document.createElement("small");
+        when.textContent = new Date(s.created_at).toLocaleString();
+        btn.appendChild(title);
+        btn.appendChild(when);
+        btn.addEventListener("click", () => openHistoryDetail(s));
+        listEl.appendChild(btn);
+      });
+    } catch (err) {
+      if (err instanceof AuthError) return;
+      listEl.innerHTML = "";
+      const p = document.createElement("p");
+      p.className = "form-error";
+      p.style.display = "block";
+      p.textContent = err instanceof TypeError
+        ? "Couldn't reach the server. Check your connection and try again."
+        : (err.message || "Couldn't load your sessions.");
+      listEl.appendChild(p);
+    }
+  }
+
+  function showHistoryList() {
+    document.getElementById("history-list-view").style.display = "block";
+    document.getElementById("history-detail").style.display = "none";
+  }
+
+  async function openHistoryDetail(session) {
+    selectedHistorySession = session;
+    selectedSessionCanContinue = false;
+    document.getElementById("history-list-view").style.display = "none";
+    document.getElementById("history-detail").style.display = "flex";
+    document.getElementById("history-detail-title").textContent = session.title;
+    const box = document.getElementById("history-messages");
+    const actions = document.getElementById("history-actions");
+    const status = document.getElementById("history-status");
+    const continueBtn = document.getElementById("continue-session-btn");
+    const deleteResumeBtn = document.getElementById("delete-resume-btn");
+    const deleteChatBtn = document.getElementById("delete-chat-btn");
+    actions.style.display = "none";
+    status.textContent = "Checking resume data...";
+    box.innerHTML = `<p class="hint">Loading messages...</p>`;
+
+    try {
+      const [messagesRes, statusRes] = await Promise.all([
+        authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/messages`),
+        authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/status`)
+      ]);
+      if (!messagesRes.ok) throw new Error(await readError(messagesRes, "Couldn't load this session."));
+      if (!statusRes.ok) throw new Error(await readError(statusRes, "Couldn't check resume data."));
+      const msgs = await messagesRes.json();
+      const state = await statusRes.json();
+
+      box.innerHTML = "";
+      if (msgs.length === 0) box.innerHTML = `<p class="hint">This session has no messages yet.</p>`;
+      msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content, { container: box }));
+
+      selectedSessionCanContinue = !!state.can_continue;
+      actions.style.display = "flex";
+      continueBtn.style.display = selectedSessionCanContinue ? "inline-block" : "none";
+      deleteResumeBtn.style.display = selectedSessionCanContinue ? "inline-block" : "none";
+      deleteChatBtn.style.display = "inline-block";
+      status.textContent = selectedSessionCanContinue
+        ? "Resume data is available. You can continue this conversation."
+        : "Resume data has been deleted or is unavailable. Chat history is read-only.";
+    } catch (err) {
+      if (err instanceof AuthError) return;
+      box.innerHTML = "";
+      const p = document.createElement("p");
+      p.className = "form-error";
+      p.style.display = "block";
+      p.textContent = err.message || "Couldn't load this session.";
+      box.appendChild(p);
+      status.textContent = "";
+    }
+  }
+
+  async function continueHistorySession() {
+    if (!selectedHistorySession || !selectedSessionCanContinue) return;
+    const session = selectedHistorySession;
+    const btn = document.getElementById("continue-session-btn");
+    btn.disabled = true;
+    btn.textContent = "Opening...";
+    try {
+      // Reload history so the live chat starts with the saved conversation visible.
+      const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/messages`);
+      if (!res.ok) throw new Error(await readError(res, "Couldn't reopen this session."));
+      const msgs = await res.json();
+      threadId = session.id;
+      lastUserText = null;
+      busy = false;
+      sendBtn.disabled = false;
+      messagesEl.innerHTML = "";
+      if (msgs.length === 0) {
+        addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
+        renderChips();
+      } else {
+        msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content));
+        chipsEl.innerHTML = "";
+      }
+      sessionBadge.textContent = session.title;
+      showScreen("chat");
+      nearBottom = true;
+      scrollToBottomIfNeeded();
+      inputEl.value = "";
+      inputEl.style.height = "auto";
+      inputEl.focus();
+    } catch (err) {
+      if (!(err instanceof AuthError)) alert(err.message || "Couldn't continue this session.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Continue this session";
+    }
+  }
+
+  async function deleteHistoryResume() {
+    if (!selectedHistorySession || !selectedSessionCanContinue) return;
+    if (!confirm("Delete the resume data for this session? Your saved chat messages will remain readable, but you will no longer be able to continue this session.")) return;
+    const btn = document.getElementById("delete-resume-btn");
+    const status = document.getElementById("history-status");
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+    try {
+      const res = await authFetch(`${API_BASE}/session/${encodeURIComponent(selectedHistorySession.id)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await readError(res, "Couldn't delete resume data."));
+      selectedSessionCanContinue = false;
+      if (threadId === selectedHistorySession.id) clearChatState();
+      document.getElementById("continue-session-btn").style.display = "none";
+      btn.style.display = "none";
+      status.textContent = "Resume data deleted. Your previous messages are still preserved above.";
+    } catch (err) {
+      if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete resume data.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Delete resume data";
+    }
+  }
+
+  async function deleteHistoryChat() {
+    if (!selectedHistorySession) return;
+    if (!confirm("Delete this chat session and all of its messages permanently?")) return;
+    const btn = document.getElementById("delete-chat-btn");
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+    try {
+      const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(selectedHistorySession.id)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await readError(res, "Couldn't delete this chat."));
+      if (threadId === selectedHistorySession.id) clearChatState();
+      selectedHistorySession = null;
+      await openHistory();
+    } catch (err) {
+      if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete this chat.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Delete chat";
+    }
+  }
+
+  // ---------- chat ----------
 
   function renderChips() {
     chipsEl.innerHTML = "";
@@ -608,7 +1050,7 @@
     const typingRow = addTypingIndicator();
 
     try {
-      const res = await fetch(`${API_BASE}/chat`, {
+      const res = await authFetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ thread_id: threadId, user_input: text }),
@@ -625,13 +1067,7 @@
         }
 
         // Surface the real backend message instead of a generic one.
-        let detail = `Request failed (${res.status}).`;
-        try {
-          const errBody = await res.json();
-          if (errBody && typeof errBody.detail === "string") detail = errBody.detail;
-        } catch (_) {
-          // response wasn't JSON — keep the generic message
-        }
+        const detail = await readError(res, `Request failed (${res.status}).`);
         const isRetryable = res.status >= 500 || res.status === 429;
         addMessage("ai", detail, { isError: true, showRetry: isRetryable });
         return;
@@ -641,6 +1077,7 @@
       addMessage("ai", data.final_result);
     } catch (err) {
       typingRow.remove();
+      if (err instanceof AuthError) return; // forceLogin already switched screens
       addMessage(
         "ai",
         "Couldn't reach the server. Check your connection and try again.",
@@ -673,8 +1110,10 @@
     return row;
   }
 
+  // opts.container lets the history screen reuse this to render past messages.
   function addMessage(role, text, opts) {
     opts = opts || {};
+    const container = opts.container || messagesEl;
     const row = document.createElement("div");
     row.className = `row ${role}`;
 
@@ -725,8 +1164,8 @@
 
     row.appendChild(avatar);
     row.appendChild(wrap);
-    messagesEl.appendChild(row);
-    scrollToBottomIfNeeded();
+    container.appendChild(row);
+    if (container === messagesEl) scrollToBottomIfNeeded();
     return row;
   }
 
@@ -763,6 +1202,31 @@
   function inlineFormat(text) {
     return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
+
+  // ---------- startup ----------
+
+  // If a saved token exists, check it with /auth/me before showing the app.
+  (async function init() {
+    showScreen("auth");
+    const saved = localStorage.getItem(TOKEN_KEY);
+    if (!saved) return;
+    token = saved;
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
+      if (res.ok) {
+        const me = await res.json();
+        userEmail = me.email;
+        enterApp();
+      } else {
+        forceLogin();
+      }
+    } catch (_) {
+      // Server unreachable or still starting: keep the token and let the user try.
+      showScreen("auth");
+      token = null;
+      showError(authError, "Couldn't reach the server. Please try again in a moment.");
+    }
+  })();
 </script>
 
 </body>

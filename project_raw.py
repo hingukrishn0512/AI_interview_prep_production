@@ -1,19 +1,21 @@
 import os
+import re
 import json
 import time
 import logging
+import threading
+from datetime import datetime, timezone, timedelta
 from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.runnables import RunnableConfig
 from langchain_tavily import TavilySearch
 from langchain_groq import ChatGroq
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from dotenv import load_dotenv
-from light_embeddings import LightHFEmbeddings
-
+from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 load_dotenv()
 
@@ -34,7 +36,6 @@ tools = [search_tool]
 llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.2)
 llm_tools = llm.bind_tools(tools)
 
-embedings = LightHFEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 
 class RateLimitExceeded(Exception):
@@ -46,10 +47,10 @@ class RateLimitExceeded(Exception):
 def safe_llm_invoke(prompt, max_retries: int = 4, base_delay: float = 1.5):
     """Wraps llm.invoke with exponential backoff + jitter.
 
-    This exists because a single DSA request fans out into three Groq calls
-    fired back-to-back (arrays/hashing, trees/graphs, dp), which is an easy
-    way to trip a provider-side 429 even when overall usage is low. Without
-    a retry here, one throttled call takes down the whole /chat request.
+    This exists because a single DSA request can fan out into several Groq calls
+    fired back-to-back, which is an easy way to trip a provider-side 429 even
+    when overall usage is low. Without a retry here, one throttled call takes
+    down the whole /chat request.
     """
     last_error = None
     for attempt in range(max_retries):
@@ -65,10 +66,7 @@ def safe_llm_invoke(prompt, max_retries: int = 4, base_delay: float = 1.5):
                 or "too many requests" in error_text
             )
             # Quota exhaustion (daily/monthly cap) looks like a rate limit but
-            # won't clear in seconds — retrying just burns time (and possibly
-            # more of the remaining allowance) for a call that can't succeed
-            # until the quota resets. Fail immediately in that case instead
-            # of running through the full backoff schedule.
+            # won't clear in seconds, so fail immediately instead of retrying.
             is_quota_exhausted = is_rate_limit and (
                 "quota" in error_text
                 or "per day" in error_text
@@ -90,7 +88,6 @@ def safe_llm_invoke(prompt, max_retries: int = 4, base_delay: float = 1.5):
                 attempt + 1, max_retries, delay, e,
             )
             time.sleep(delay)
-    # Should be unreachable, but keep mypy/pyflakes happy.
     raise RateLimitExceeded(str(last_error))
 
 
@@ -107,18 +104,11 @@ def merge_dict(left, right):
 
 def format_history(state, keep_head: int = 6, keep_tail: int = 20) -> str:
     """Render the conversation history (candidate + coach) as plain text, for
-    prompts that need to reason about what's already been said. Without this,
-    every node only ever sees the current message in isolation — which is why
-    follow-ups, corrections, and "what did I ask earlier" style questions
-    previously broke.
+    prompts that need to reason about what's already been said.
 
-    By default the FULL transcript is included, not just a recent window —
-    a short window would make "what did I ask at the very beginning?" fail
-    again in any conversation longer than a few turns. If the transcript
-    gets long, the earliest `keep_head` turns and most recent `keep_tail`
-    turns are kept in full (so both "the beginning" and "just now" stay
-    answerable) and the middle is collapsed into a one-line note instead of
-    being dropped silently.
+    The earliest `keep_head` turns and most recent `keep_tail` turns are kept in
+    full, and the middle is collapsed into a one-line note if the transcript
+    gets long.
     """
     past_messages = state.get('messages', []) or []
     turns = []
@@ -162,25 +152,48 @@ class state(TypedDict):
     topic: str
     requested_topics: list
     final_result: str
+    resume_text: str
     candidate_questions: Annotated[dict, merge_dict]
 
 
-def build_RAG(pdf_path: str):
-    loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks = splitter.split_documents(documents)
-    vector_store = FAISS.from_documents(chunks, embedings)
-    return vector_store.as_retriever(search_kwargs={"k": 4})
+## ============================================================
+# Resume text and cleanup
+# ============================================================
+# The resume text now lives in the graph state (saved in Postgres by the
+# checkpointer), so it survives restarts and is removed by delete_thread.
+
+MAX_RESUME_CHARS = 15000   # ~4k tokens, far more than a normal resume
+
+_pool = None    # Postgres connection pool, set in create_graph()
+_saver = None   # the PostgresSaver, set in create_graph()
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+def extract_resume_text(pdf_path: str) -> str:
+    """Returns the resume's text. Raises ValueError if the PDF has no extractable text."""
+    documents = PyPDFLoader(pdf_path).load()
+    text = "\n\n".join(d.page_content for d in documents).strip()
+    if not text:
+        raise ValueError("No readable text found (scanned/image-only PDF?)")
+    return text[:MAX_RESUME_CHARS]
 
 
-# TODO: update this path to your actual resume PDF location
-resume_retriever = build_RAG(
-    os.path.join(BASE_DIR, "Hingu_Krishn_Resume_compressed.pdf")
-)
+def purge_inactive_threads(max_age_seconds: int) -> list:
+    """Deletes the graph state (and resume text) of sessions whose latest
+    checkpoint is older than max_age_seconds. Returns the purged thread_ids."""
+    if _pool is None or _saver is None:
+        return []
+    cutoff = (datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)).isoformat()
+    with _pool.connection() as conn:
+        rows = conn.execute(
+            "SELECT thread_id FROM checkpoints "
+            "GROUP BY thread_id HAVING MAX(checkpoint->>'ts') < %s",
+            (cutoff,),
+        ).fetchall()
+    thread_ids = [r["thread_id"] for r in rows]
+    for thread_id in thread_ids:
+        _saver.delete_thread(thread_id)
+    return thread_ids
+
 
 # --- nodes ---
 
@@ -224,7 +237,9 @@ Categories:
   elevator pitch / "tell me about yourself" answer based on their resume, asking
   you to walk through their background or resume, or asking which of their
   experiences/projects to highlight for this role. Any request that needs their
-  actual resume content as an input belongs here — not general_chat.
+  actual resume content as an input belongs here — not general_chat. This also
+  covers questions about specific parts of their resume (e.g. "explain my X
+  project", "what's my strongest skill", "how do I talk about my internship").
 - general_chat: Greetings, small talk, thanks, farewells, requests for study
   resources/links/advice, follow-up questions about something already discussed,
   corrections or clarifications, bare/underspecified requests that need a
@@ -285,6 +300,8 @@ Examples:
 "give me an elevator pitch based on my resume" -> resume_gap
 "walk me through my background for this role" -> resume_gap
 "which of my projects should I highlight for this role?" -> resume_gap
+"how should I explain my chatbot project in an interview?" -> resume_gap
+"what's the weakest part of my resume for this role?" -> resume_gap
 "ask me a question about handling conflict" -> behavioral
 "give me an hr question about a time you failed" -> behavioral
 "give me an hr question" (no theme named) -> general_chat
@@ -322,10 +339,8 @@ def reviwer_node(state: state) -> dict:
     from the candidate's message, in a single Groq call.
 
     Determining the topic here (instead of always fanning out to all three
-    topic-generator nodes) is what lets router_function send the request
-    straight to the one matching node most of the time — since classifier_node
-    already only routes here when a topic is named or clearly continued from
-    earlier in the conversation, "ambiguous" should be rare in practice.
+    topic-generator nodes) lets topic_router_function send the request straight
+    to the one matching node most of the time.
     """
     user_message = state['user_input']
     history = format_history(state)
@@ -369,15 +384,14 @@ JSON:"""
 
     response = safe_llm_invoke(prompt)
     raw = response.content.strip()
-    # Strip accidental markdown fences before parsing.
-    if raw.startswith("```"):
-        raw = raw.strip("`")
-        raw = raw.replace("json", "", 1).strip() if raw.lower().startswith("json") else raw
 
     topic = "ambiguous"
     difficulty = "medium"
+    # Pull out the first {...} block, so markdown fences or stray text around
+    # the JSON don't break parsing.
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
     try:
-        data = json.loads(raw)
+        data = json.loads(match.group(0) if match else raw)
         topic = str(data.get("topic", "ambiguous")).strip().lower()
         difficulty = str(data.get("difficulty", "medium")).strip().lower()
     except (json.JSONDecodeError, AttributeError) as e:
@@ -401,7 +415,7 @@ JSON:"""
 
 
 def array_hasing_node(state: state) -> dict:
-    """asking questions about array_hasing_node topic for DSA"""
+    """asking questions about arrays/hashing topic for DSA"""
     difficulty_level = state['difficulty_level']
 
     prompt = f"""You are an experienced technical interviewer creating a DSA practice
@@ -433,7 +447,7 @@ CRITICAL INSTRUCTIONS:
 
 
 def trees_graphs_node(state: state) -> dict:
-    """asking questions about trees_graphs_node topic for DSA"""
+    """asking questions about trees/graphs topic for DSA"""
     difficulty_level = state['difficulty_level']
 
     prompt = f"""You are an experienced technical interviewer creating a DSA practice
@@ -465,7 +479,7 @@ CRITICAL INSTRUCTIONS:
 
 
 def dp_node(state: state) -> dict:
-    """asking questions about dp_node topic for DSA"""
+    """asking questions about dynamic programming topic for DSA"""
     difficulty_level = state['difficulty_level']
 
     prompt = f"""You are an experienced technical interviewer creating a DSA practice
@@ -501,12 +515,10 @@ def picker_node(state: state) -> dict:
     candidate_questions is merged (never cleared) across the whole session by
     design, so it can still contain keys from earlier turns. requested_topics
     is set FRESH every turn by reviwer_node, so we filter down to just this
-    turn's candidates before deciding anything — that's what keeps an old
-    "trees_graphs" question from a previous turn out of today's decision.
+    turn's candidates before deciding anything.
 
-    When only one topic was actually requested (the common case now that
-    routing goes straight to the matching node), there's nothing to pick
-    between — skip the LLM call entirely and return that candidate directly.
+    When only one topic was requested (the common case), there's nothing to
+    pick between, so the LLM call is skipped.
     """
     user_message = state['user_input']
     difficulty_level = state['difficulty_level']
@@ -555,7 +567,7 @@ CRITICAL INSTRUCTIONS:
 Chosen topic key:"""
     response = safe_llm_invoke(prompt)
 
-    chosen_topic = response.content.strip().split("\n")[0].strip().lower()
+    chosen_topic = response.content.strip().split("\n")[0].strip().lower().strip("[]\"' ")
     final_question = candidates.get(chosen_topic, list(candidates.values())[0])
 
     return {
@@ -570,7 +582,13 @@ def company_reasearch_node(state: state) -> dict:
     role = state['role']
 
     search_query = f"{company_name} {role} interview process culture recent news"
-    search_results = search_tool.invoke(search_query)
+    try:
+        search_results = search_tool.invoke(search_query)
+    except Exception as e:
+        # A failed search shouldn't take down the whole request; the prompt
+        # below tells the model to say honestly when results are missing.
+        logger.error("Tavily search failed: %s", e)
+        search_results = "(the web search failed, so no results are available)"
 
     prompt = f"""You are a career coach helping a candidate prepare for an interview at
 {company_name} for the role of {role}.
@@ -609,20 +627,28 @@ search results:
     }
 
 
-def resume_gap_node(state: state) -> dict:
+def resume_gap_node(state: state, config: RunnableConfig) -> dict:
     """Handles any request that needs the candidate's actual resume as
     grounding: gap analysis, an elevator pitch / "tell me about yourself",
-    a walkthrough of their background, or picking which experience to
-    highlight. All of these share the same retrieval step, so they live in
-    one node — what differs is how the response is shaped, based on what the
-    candidate actually asked for."""
+    a walkthrough of their background, questions about a specific project,
+    or picking which experience to highlight. The resume is looked up by
+    thread_id, so every user gets their OWN uploaded resume."""
     role = state['role']
     company_name = state['company_name']
     user_message = state['user_input']
+    resume_text = state.get('resume_text')
 
-    query = f"skills, experience, and projects relevant to a {role} position"
-    retrieved_docs = resume_retriever.invoke(query)
-    resume_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+    if not resume_text:
+        final_result = ("I don't have a resume for this session yet. "
+                        "Please start a new session and upload your resume.")
+        return {
+            "final_result": final_result,
+            "messages": [("ai", final_result)],
+        }
+
+    # The whole resume goes into the prompt, so any question about any part of
+    # it (a project, a skill, an internship) is always answerable.
+    resume_context = resume_text
 
     prompt = f"""You are a career coach helping a candidate prepare for a job interview
 for {role} at {company_name}. You have the candidate's actual resume content below —
@@ -644,6 +670,9 @@ CRITICAL INSTRUCTIONS:
      a fit for {role} at {company_name}.
    - Asking which experience/projects to highlight -> name the specific ones from
      the resume context that best match {role}, with a one-line reason each.
+   - Asking about a specific project, skill, or part of their resume (how to
+     explain it, what to emphasize, what questions an interviewer might ask about
+     it) -> answer that directly using the matching resume details.
    - Anything else resume-related -> use your best judgment, staying grounded only
      in the resume content provided.
 4. Keep the tone encouraging and constructive, like a mentor helping them prepare.
@@ -652,7 +681,7 @@ CRITICAL INSTRUCTIONS:
 role:
 {role} at {company_name}
 
-resume context:
+full resume:
 \"\"\"{resume_context}\"\"\"
 
 candidate's request:
@@ -811,15 +840,8 @@ def router_function(state: state):
 
 def topic_router_function(state: state):
     """Reads the topic set by reviwer_node and routes to JUST the matching
-    topic-generator node — instead of always firing all three in parallel.
-
-    All three Groq calls hitting at once was the actual cause of the
-    intermittent 400s: a burst like that is an easy way to trip a
-    provider-side rate limit even under otherwise-light traffic. Now that
-    reviwer_node determines the topic, we only pay for a 3-way fan-out on
-    the (should be rare) "ambiguous" case — and even then, safe_llm_invoke
-    will retry through a transient 429 instead of failing the whole request.
-    """
+    topic-generator node, instead of always firing all three in parallel.
+    The 3-way fan-out only happens in the (rare) "ambiguous" case."""
     topic = state.get('topic', 'ambiguous')
     if topic == "arrays_hashing":
         return ["array_hasing_node"]
@@ -830,12 +852,18 @@ def topic_router_function(state: state):
     else:
         return ["array_hasing_node", "trees_graphs_node", "dp_node"]
 
-#  it will called once when the session created 
-# of the create graph we need to wrap it into the function and save it memorysaver
 
-def create_graph():
-    """Builds and compiles the graph WITH a checkpointer, so each thread_id
-       (i.e. each user session) gets its own persisted state automatically."""
+# Called once when the API server starts. Builds the graph and attaches the
+# checkpointer, so each thread_id (user session) gets its own persisted state.
+
+
+def create_graph(checkpoint_url: str):
+    """Builds and compiles the graph with PostgreSQL persistence."""
+
+    global _pool, _saver
+
+    if not checkpoint_url:
+        raise ValueError("checkpoint_url is required to create the PostgreSQL checkpointer")
 
     graph = StateGraph(state)
 
@@ -848,10 +876,12 @@ def create_graph():
     graph.add_node("company_reasearch_node", company_reasearch_node)
     graph.add_node("resume_gap_node", resume_gap_node)
     graph.add_node("behavioral_node", behavioral_node)
-    graph.add_node(general_chat_node)
+    graph.add_node("general_chat_node", general_chat_node)
+
     graph.add_edge(START, "classifier_node")
 
     graph.add_conditional_edges("classifier_node", router_function)
+
     graph.add_conditional_edges(
         "reviwer_node",
         topic_router_function,
@@ -868,5 +898,20 @@ def create_graph():
     graph.add_edge("behavioral_node", END)
     graph.add_edge("general_chat_node", END)
 
-    checkpointer = MemorySaver()
-    return graph.compile(checkpointer=checkpointer)
+    # PostgreSQL connection pool
+    _pool = ConnectionPool(
+        conninfo=checkpoint_url,
+        max_size=10,
+        kwargs={
+            "autocommit": True,
+            "prepare_threshold": 0,
+            "row_factory": dict_row,
+        },
+        open=True,
+    )
+
+    # PostgreSQL checkpointer
+    _saver = PostgresSaver(_pool)
+    _saver.setup()
+
+    return graph.compile(checkpointer=_saver)
