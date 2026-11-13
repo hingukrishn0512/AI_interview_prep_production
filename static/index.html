@@ -3,65 +3,69 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>PrepCoach AI &mdash; Interview Intelligence</title>
+<title>PrepCoach &mdash; AI Interview Coach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-base: #07090e;
-    --bg-surface: #0e111a;
-    --bg-subtle: #141824;
-    --bg-elevated: #1a2030;
+    --bg-main: #0b0e14;
+    --bg-card: #121722;
+    --bg-input: #0b0e14;
+    --bg-hover: #182030;
     --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-strong: rgba(255, 255, 255, 0.14);
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-tertiary: #64748b;
     --accent: #f59e0b;
     --accent-hover: #fbbf24;
-    --accent-glow: rgba(245, 158, 11, 0.14);
-    --accent-text: #0f0b00;
+    --accent-glow: rgba(245, 158, 11, 0.12);
+    --accent-text: #0e0a00;
     --danger: #ef4444;
     --danger-subtle: rgba(239, 68, 68, 0.12);
-    --success: #10b981;
     --radius-sm: 8px;
     --radius-md: 12px;
-    --radius-lg: 18px;
+    --radius-lg: 16px;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    scrollbar-width: none; /* Hide scrollbars in Firefox */
+    -ms-overflow-style: none; /* Hide scrollbars in IE/Edge */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Hide scrollbars in Chrome, Safari & Edge */
+  }
 
   html, body {
     height: 100%;
-    background-color: var(--bg-base);
+    background-color: var(--bg-main);
     color: var(--text-primary);
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Seamless, unified window frame */
   .app-frame {
     width: 100%;
-    max-width: 920px;
+    max-width: 900px;
     height: 100dvh;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    background: var(--bg-surface);
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
+    background-color: var(--bg-main);
     contain: layout size;
   }
 
-  @media (max-width: 920px) {
-    .app-frame { border: none; }
-  }
-
-  /* --- Top Navigation --- */
+  /* Top Navigation */
   header {
     padding: calc(14px + env(safe-area-inset-top)) 24px 14px;
-    background: var(--bg-surface);
+    background-color: var(--bg-main);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -82,7 +86,7 @@
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #2a3449, #151a26);
+    background: #151b27;
     border: 1px solid var(--border-strong);
     display: flex;
     align-items: center;
@@ -95,24 +99,10 @@
 
   .brand-details { min-width: 0; }
   .brand-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.01em;
-    display: flex;
-    align-items: center;
-    gap: 8px;
     white-space: nowrap;
-  }
-  .brand-badge {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--accent);
-    background: var(--accent-glow);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 20px;
-    padding: 1px 7px;
   }
   .brand-sub {
     font-size: 12px;
@@ -124,8 +114,8 @@
 
   #session-badge {
     display: none;
-    margin-top: 4px;
-    background: var(--bg-elevated);
+    margin-top: 3px;
+    background: var(--bg-hover);
     border: 1px solid var(--border-strong);
     color: var(--accent);
     border-radius: 6px;
@@ -143,7 +133,7 @@
 
   .btn-nav {
     display: none;
-    background: var(--bg-subtle);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
@@ -152,15 +142,14 @@
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    transition: color 0.15s, border-color 0.15s;
   }
   .btn-nav:hover {
     color: var(--text-primary);
     border-color: var(--border-strong);
-    background: var(--bg-elevated);
   }
 
-  /* --- Screens --- */
+  /* Screens */
   .screen {
     display: none;
     flex: 1;
@@ -168,36 +157,40 @@
     overflow-y: auto;
   }
 
-  #auth, #setup, #history {
-    padding: 32px 20px;
-  }
-
   #auth, #setup {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 24px 20px;
   }
 
+  #history {
+    flex-direction: column;
+    padding: 28px 24px;
+    gap: 16px;
+  }
+
+  /* Clean Elevated Card */
   .card-container {
     width: 100%;
-    max-width: 440px;
-    background: var(--bg-subtle);
+    max-width: 420px;
+    background: var(--bg-card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
-    padding: 32px 28px;
+    padding: 30px 26px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
   }
 
-  .card-container.wide { max-width: 540px; }
+  .card-container.wide { max-width: 520px; }
 
   .card-head h2 {
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
     letter-spacing: -0.02em;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
   .card-head p {
     font-size: 13px;
@@ -209,7 +202,7 @@
   .tabs-pill {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    background: var(--bg-base);
+    background: var(--bg-main);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 3px;
@@ -229,11 +222,11 @@
     transition: background 0.15s, color 0.15s;
   }
   .tab-item.active {
-    background: var(--bg-elevated);
+    background: var(--bg-hover);
     color: var(--text-primary);
   }
 
-  /* Form Inputs */
+  /* Form Elements */
   .field-group {
     display: flex;
     flex-direction: column;
@@ -257,7 +250,7 @@
   .field-group input[type="email"],
   .field-group input[type="password"] {
     width: 100%;
-    background: var(--bg-base);
+    background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 11px 14px;
@@ -270,7 +263,16 @@
   .field-group input:focus {
     border-color: var(--accent);
   }
-  .field-group input.with-btn { padding-right: 60px; }
+  .field-group input.with-btn { padding-right: 58px; }
+
+  /* Fix Chrome autofill turning fields white */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text-primary) !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0b0e14 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 
   .pwd-toggle-btn {
     position: absolute;
@@ -288,7 +290,7 @@
   /* Resume Picker */
   .resume-drop {
     position: relative;
-    background: var(--bg-base);
+    background: var(--bg-input);
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius-sm);
     padding: 14px;
@@ -296,12 +298,9 @@
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s;
   }
-  .resume-drop:hover {
-    border-color: var(--accent);
-    background: rgba(245, 158, 11, 0.02);
-  }
+  .resume-drop:hover { border-color: var(--accent); }
   .resume-drop input[type="file"] {
     position: absolute;
     inset: 0;
@@ -319,8 +318,8 @@
   }
   .resume-text.chosen { color: var(--text-primary); font-weight: 500; }
   .resume-btn-tag {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-strong);
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
     color: var(--text-secondary);
     border-radius: 6px;
     padding: 4px 10px;
@@ -345,7 +344,7 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.15s, opacity 0.15s;
+    transition: background 0.15s;
   }
   .btn-action-primary:hover { background: var(--accent-hover); }
   .btn-action-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -361,28 +360,7 @@
     line-height: 1.4;
   }
 
-  .features-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-  .feature-pill {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-tertiary);
-    background: var(--bg-base);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 10px;
-  }
-
-  /* --- History Screen --- */
-  #history {
-    flex-direction: column;
-    gap: 16px;
-  }
+  /* History */
   .history-grid {
     display: flex;
     flex-direction: column;
@@ -390,7 +368,7 @@
     margin-top: 14px;
   }
   .history-card-item {
-    background: var(--bg-subtle);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 14px 18px;
@@ -401,7 +379,7 @@
     transition: background 0.15s, border-color 0.15s;
   }
   .history-card-item:hover {
-    background: var(--bg-elevated);
+    background: var(--bg-hover);
     border-color: var(--accent);
   }
   .history-item-title {
@@ -422,7 +400,7 @@
     margin-top: 14px;
   }
   .btn-history-ctrl {
-    background: var(--bg-subtle);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-secondary);
     padding: 8px 14px;
@@ -431,12 +409,12 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
   }
-  .btn-history-ctrl:hover { background: var(--bg-elevated); color: var(--text-primary); }
+  .btn-history-ctrl:hover { background: var(--bg-hover); color: var(--text-primary); }
   .btn-history-ctrl.primary { background: var(--accent); color: var(--accent-text); border: none; }
   .btn-history-ctrl.danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
   .btn-history-ctrl.danger:hover { background: var(--danger-subtle); }
 
-  /* --- Chat Screen --- */
+  /* Chat Screen */
   #chat-screen {
     flex-direction: column;
     position: relative;
@@ -475,7 +453,7 @@
     color: var(--accent);
   }
   .user-avatar.user {
-    background: var(--bg-elevated);
+    background: var(--bg-card);
     border: 1px solid var(--border-strong);
     color: var(--text-secondary);
   }
@@ -508,7 +486,7 @@
     color: var(--text-primary);
   }
   .chat-turn.ai .bubble-content {
-    background: var(--bg-subtle);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 4px 14px 14px 14px;
     padding: 14px 18px;
@@ -539,7 +517,7 @@
     padding: 1px 5px;
   }
   .bubble-content pre {
-    background: #040608;
+    background: #06080c;
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px 14px;
@@ -567,11 +545,10 @@
     font-size: 11px;
     cursor: pointer;
     padding: 2px 4px;
-    border-radius: 4px;
   }
   .btn-text-action:hover { color: var(--accent); }
 
-  /* Chips */
+  /* Suggestion Chips */
   #chips {
     display: flex;
     flex-wrap: wrap;
@@ -580,7 +557,7 @@
     flex-shrink: 0;
   }
   .suggestion-chip {
-    background: var(--bg-subtle);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-secondary);
     border-radius: 20px;
@@ -595,10 +572,10 @@
     color: var(--accent);
   }
 
-  /* Composer */
+  /* Composer Dock */
   .composer-dock {
     padding: 14px 24px calc(16px + env(safe-area-inset-bottom));
-    background: var(--bg-surface);
+    background-color: var(--bg-main);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
   }
@@ -607,7 +584,7 @@
     display: flex;
     gap: 10px;
     align-items: flex-end;
-    background: var(--bg-base);
+    background: var(--bg-input);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     padding: 8px 10px 8px 16px;
@@ -655,9 +632,6 @@
   .typing-wave span:nth-child(2) { animation-delay: 0.15s; }
   .typing-wave span:nth-child(3) { animation-delay: 0.3s; }
   @keyframes wavePulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-
-  #messages::-webkit-scrollbar { width: 5px; }
-  #messages::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 </style>
 </head>
 <body>
@@ -667,7 +641,7 @@
     <div class="brand-area">
       <div class="brand-logo">AI</div>
       <div class="brand-details">
-        <h1 class="brand-title">PrepCoach <span class="brand-badge">PRO</span></h1>
+        <h1 class="brand-title">PrepCoach</h1>
         <p class="brand-sub" id="header-sub">Practice questions, company research & resume checks.</p>
         <div id="session-badge"></div>
       </div>
@@ -708,13 +682,6 @@
 
       <button class="btn-action-primary" id="auth-submit">Log in</button>
       <div id="auth-error" class="msg-error-banner"></div>
-
-      <div class="features-strip">
-        <span class="feature-pill">DSA Calibration</span>
-        <span class="feature-pill">Behavioral STAR</span>
-        <span class="feature-pill">Company Intel</span>
-        <span class="feature-pill">Resume Grounding</span>
-      </div>
     </div>
   </section>
 
@@ -761,7 +728,7 @@
 
     <div id="history-detail" style="display:none;">
       <button class="btn-text-action" id="history-back">&larr; All sessions</button>
-      <div style="background:var(--bg-subtle); padding:16px 20px; border-radius:12px; border:1px solid var(--border); margin:12px 0;">
+      <div style="background:var(--bg-card); padding:16px 20px; border-radius:12px; border:1px solid var(--border); margin:12px 0;">
         <h2 id="history-detail-title" style="font-size: 17px; font-weight:700;"></h2>
         <div class="history-button-row" id="history-actions" style="display:none;">
           <button class="btn-history-ctrl primary" id="continue-session-btn">Continue session</button>
@@ -788,7 +755,7 @@
 </div>
 
 <script>
-  // Pointed to your live Render backend for instant, lag-free Vercel edge delivery
+  // Pointed to your live Render backend for fast, lag-free Vercel CDN delivery
   const API_BASE = "https://ai-interview-prep-production-lrvm.onrender.com";
   const MAX_RESUME_BYTES = 5 * 1024 * 1024;
   const TOKEN_KEY = "coach_token";
