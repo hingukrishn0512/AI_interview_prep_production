@@ -3,43 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>PrepCoach &mdash; AI Interview Coach</title>
+<title>PrepCoach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-main: #0b0e14;
-    --bg-card: #121722;
-    --bg-input: #0b0e14;
-    --bg-hover: #182030;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
-    --accent: #f59e0b;
-    --accent-hover: #fbbf24;
-    --accent-glow: rgba(245, 158, 11, 0.12);
-    --accent-text: #0e0a00;
+    --bg-main: #212121;
+    --bg-sidebar: #171717;
+    --bg-surface: #2f2f2f;
+    --bg-hover: #383838;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --text-primary: #ececec;
+    --text-secondary: #b4b4b4;
+    --text-muted: #8e8e8e;
+    --accent-btn: #ffffff;
+    --accent-btn-text: #0d0d0d;
     --danger: #ef4444;
-    --danger-subtle: rgba(239, 68, 68, 0.12);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+    --danger-subtle: rgba(239, 68, 68, 0.15);
   }
 
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    scrollbar-width: none; /* Hide scrollbars in Firefox */
-    -ms-overflow-style: none; /* Hide scrollbars in IE/Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-
-  *::-webkit-scrollbar {
-    display: none; /* Hide scrollbars in Chrome, Safari & Edge */
-  }
+  *::-webkit-scrollbar { display: none; }
 
   html, body {
     height: 100%;
@@ -50,258 +42,365 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Seamless, unified window frame */
-  .app-frame {
-    width: 100%;
-    max-width: 900px;
-    height: 100dvh;
-    margin: 0 auto;
+  .app-shell {
     display: flex;
-    flex-direction: column;
-    background-color: var(--bg-main);
-    contain: layout size;
+    width: 100vw;
+    height: 100dvh;
+    background: var(--bg-main);
   }
 
-  /* Top Navigation */
-  header {
-    padding: calc(14px + env(safe-area-inset-top)) 24px 14px;
-    background-color: var(--bg-main);
-    border-bottom: 1px solid var(--border);
+  /* --- ChatGPT Sidebar --- */
+  #sidebar {
+    width: 260px;
+    height: 100%;
+    background-color: var(--bg-sidebar);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    z-index: 20;
+  }
+
+  .sidebar-header {
+    padding: 14px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    flex-shrink: 0;
-    z-index: 10;
-  }
-
-  .brand-area {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
   }
 
   .brand-logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: #151b27;
-    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .brand-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #0d0d0d;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 15px;
-    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 800;
   }
 
-  .brand-details { min-width: 0; }
-  .brand-title {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+  .btn-new-chat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin: 4px 12px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-new-chat:hover { background: var(--bg-hover); }
+
+  .sidebar-section-title {
+    padding: 0 16px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .recents-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .recent-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.15s, color 0.15s;
+  }
+  .recent-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  .recent-item.active {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .recent-item-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .brand-sub {
+
+  .sidebar-footer {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .user-avatar-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e11d48;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .user-email-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .btn-icon-ghost {
+    background: transparent;
+    border: none;
     color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  .btn-icon-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* --- Main Viewport --- */
+  #main-viewport {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-main);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Top Bar */
+  .top-bar {
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    min-height: 52px;
+  }
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .toggle-sidebar-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .toggle-sidebar-btn:hover { background: var(--bg-surface); color: var(--text-primary); }
+  .current-session-title {
+    font-size: 14.5px;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  #session-badge {
-    display: none;
-    margin-top: 3px;
-    background: var(--bg-hover);
-    border: 1px solid var(--border-strong);
-    color: var(--accent);
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    width: fit-content;
-  }
-
-  .nav-controls {
+  .session-actions-top {
     display: flex;
     gap: 8px;
-    flex-shrink: 0;
   }
-
-  .btn-nav {
-    display: none;
-    background: var(--bg-card);
+  .btn-action-small {
+    background: var(--bg-surface);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-    padding: 7px 12px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
   }
-  .btn-nav:hover {
-    color: var(--text-primary);
-    border-color: var(--border-strong);
-  }
+  .btn-action-small:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .btn-action-small.danger { color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
 
-  /* Screens */
-  .screen {
+  /* Screens inside main viewport */
+  .view-panel {
     display: none;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
   }
 
-  #auth, #setup {
+  /* --- Auth View (ChatGPT Style) --- */
+  #view-auth {
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 24px 20px;
   }
-
-  #history {
-    flex-direction: column;
-    padding: 28px 24px;
-    gap: 16px;
-  }
-
-  /* Clean Elevated Card */
-  .card-container {
+  .auth-card {
     width: 100%;
-    max-width: 420px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-lg);
-    padding: 30px 26px;
+    max-width: 380px;
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
     display: flex;
     flex-direction: column;
     gap: 18px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   }
-
-  .card-container.wide { max-width: 520px; }
-
-  .card-head h2 {
-    font-size: 21px;
+  .auth-card h2 {
+    font-size: 20px;
     font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 5px;
+    text-align: center;
   }
-  .card-head p {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  /* Segmented Auth Tabs */
-  .tabs-pill {
+  .auth-tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    background: var(--bg-main);
+    background: var(--bg-sidebar);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     padding: 3px;
     gap: 4px;
   }
-
-  .tab-item {
+  .auth-tab-btn {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    padding: 8px 12px;
-    font-family: inherit;
+    padding: 7px;
     font-size: 13px;
     font-weight: 600;
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
   }
-  .tab-item.active {
-    background: var(--bg-hover);
+  .auth-tab-btn.active {
+    background: var(--bg-surface);
     color: var(--text-primary);
   }
-
-  /* Form Elements */
-  .field-group {
+  .auth-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  .field-group label {
-    font-size: 11.5px;
-    font-weight: 600;
+  .auth-field label {
+    font-size: 12px;
     color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: 500;
   }
-
-  .input-wrapper {
+  .auth-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
   }
-
-  .field-group input[type="text"],
-  .field-group input[type="email"],
-  .field-group input[type="password"] {
+  .auth-field input {
     width: 100%;
-    background: var(--bg-input);
+    background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     padding: 11px 14px;
     color: var(--text-primary);
     font-family: inherit;
     font-size: 14px;
     outline: none;
-    transition: border-color 0.15s;
   }
-  .field-group input:focus {
-    border-color: var(--accent);
+  .auth-field input:focus { border-color: #ffffff; }
+  .btn-auth-submit {
+    background: var(--accent-btn);
+    color: var(--accent-btn-text);
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
   }
-  .field-group input.with-btn { padding-right: 58px; }
+  .btn-auth-submit:hover { opacity: 0.92; }
 
   /* Fix Chrome autofill turning fields white */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
     -webkit-text-fill-color: var(--text-primary) !important;
-    -webkit-box-shadow: 0 0 0px 1000px #0b0e14 inset !important;
+    -webkit-box-shadow: 0 0 0px 1000px #2f2f2f inset !important;
     transition: background-color 5000s ease-in-out 0s;
   }
 
-  .pwd-toggle-btn {
-    position: absolute;
-    right: 8px;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 6px 8px;
-    cursor: pointer;
+  /* --- Setup View (Start Practice Session) --- */
+  #view-setup {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
   }
-  .pwd-toggle-btn:hover { color: var(--text-primary); }
+  .setup-container {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .setup-head h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .setup-head p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 
-  /* Resume Picker */
-  .resume-drop {
+  .file-drop-box {
     position: relative;
-    background: var(--bg-input);
+    background: var(--bg-surface);
     border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     padding: 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    transition: border-color 0.15s;
   }
-  .resume-drop:hover { border-color: var(--accent); }
-  .resume-drop input[type="file"] {
+  .file-drop-box:hover { border-color: #ffffff; }
+  .file-drop-box input {
     position: absolute;
     inset: 0;
     opacity: 0;
@@ -309,289 +408,165 @@
     width: 100%;
     height: 100%;
   }
-  .resume-text {
-    font-size: 13px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .resume-text.chosen { color: var(--text-primary); font-weight: 500; }
-  .resume-btn-tag {
-    background: var(--bg-hover);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 11.5px;
-    font-weight: 600;
-    flex-shrink: 0;
-  }
 
-  .caption-note {
-    font-size: 11.5px;
-    color: var(--text-tertiary);
-    line-height: 1.45;
-  }
-
-  .btn-action-primary {
-    background: var(--accent);
-    color: var(--accent-text);
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .btn-action-primary:hover { background: var(--accent-hover); }
-  .btn-action-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .msg-error-banner {
-    background: var(--danger-subtle);
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    color: var(--danger);
-    font-size: 13px;
-    border-radius: var(--radius-sm);
-    padding: 10px 14px;
-    display: none;
-    line-height: 1.4;
-  }
-
-  /* History */
-  .history-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 14px;
-  }
-  .history-card-item {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .history-card-item:hover {
-    background: var(--bg-hover);
-    border-color: var(--accent);
-  }
-  .history-item-title {
-    font-size: 14.5px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .history-item-date {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-top: 2px;
-  }
-
-  .history-button-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 14px;
-  }
-  .btn-history-ctrl {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    padding: 8px 14px;
-    font-size: 12.5px;
-    font-weight: 600;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-  }
-  .btn-history-ctrl:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .btn-history-ctrl.primary { background: var(--accent); color: var(--accent-text); border: none; }
-  .btn-history-ctrl.danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
-  .btn-history-ctrl.danger:hover { background: var(--danger-subtle); }
-
-  /* Chat Screen */
-  #chat-screen {
+  /* --- Chat View --- */
+  #view-chat {
     flex-direction: column;
     position: relative;
   }
 
-  #messages {
+  .chat-scroll-area {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 24px 12px;
+    padding: 24px 18px 120px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    align-items: center;
   }
 
-  .chat-turn {
+  .messages-thread {
+    width: 100%;
+    max-width: 760px;
     display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 22px;
   }
-  .chat-turn.user { flex-direction: row-reverse; }
 
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+  .message-row {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+  }
+  .message-row.user {
+    justify-content: flex-end;
+  }
+
+  .msg-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #0d0d0d;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
     flex-shrink: 0;
-  }
-  .user-avatar.ai {
-    background: var(--accent-glow);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: var(--accent);
-  }
-  .user-avatar.user {
-    background: var(--bg-card);
-    border: 1px solid var(--border-strong);
-    color: var(--text-secondary);
+    margin-top: 2px;
   }
 
-  .speech-container {
+  .msg-body {
     max-width: 82%;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-  }
-  .chat-turn.user .speech-container { align-items: flex-end; }
-
-  .agent-label-pill {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    background: var(--accent-glow);
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    border-radius: 12px;
-    padding: 2px 8px;
-    width: fit-content;
+    gap: 4px;
   }
 
-  .bubble-content {
-    font-size: 14.5px;
+  .message-row.user .msg-body {
+    max-width: 75%;
+    align-items: flex-end;
+  }
+
+  .msg-bubble {
+    font-size: 15px;
     line-height: 1.65;
-    overflow-wrap: anywhere;
     color: var(--text-primary);
   }
-  .chat-turn.ai .bubble-content {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 4px 14px 14px 14px;
-    padding: 14px 18px;
-  }
-  .chat-turn.user .bubble-content {
-    background: #1c2436;
-    border: 1px solid var(--border-strong);
-    border-radius: 14px 4px 14px 14px;
-    padding: 12px 16px;
+
+  .message-row.user .msg-bubble {
+    background: var(--bg-surface);
+    border-radius: 20px 20px 4px 20px;
+    padding: 10px 18px;
     white-space: pre-wrap;
   }
-  .bubble-content.error {
-    background: var(--danger-subtle);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: var(--danger);
+
+  .message-row.ai .msg-bubble {
+    padding: 4px 0;
   }
 
-  .bubble-content p { margin-bottom: 8px; }
-  .bubble-content p:last-child { margin-bottom: 0; }
-  .bubble-content ul { margin: 4px 0 8px; padding-left: 20px; }
-  .bubble-content li { margin-bottom: 3px; }
-  .bubble-content strong { color: #ffffff; font-weight: 600; }
-  .bubble-content code {
+  .msg-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .msg-bubble p { margin-bottom: 8px; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+  .msg-bubble ul { margin: 4px 0 8px; padding-left: 20px; }
+  .msg-bubble li { margin-bottom: 3px; }
+  .msg-bubble strong { color: #ffffff; font-weight: 600; }
+  .msg-bubble code {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12.5px;
-    background: rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     padding: 1px 5px;
   }
-  .bubble-content pre {
-    background: #06080c;
+  .msg-bubble pre {
+    background: #0d0d0d;
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px 14px;
     margin: 10px 0;
     overflow-x: auto;
   }
-  .bubble-content pre code {
+  .msg-bubble pre code {
     background: none;
     padding: 0;
-    font-size: 12.5px;
+    font-size: 13px;
     line-height: 1.5;
   }
 
-  .bubble-actions-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--text-tertiary);
-  }
-  .btn-text-action {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 11px;
-    cursor: pointer;
-    padding: 2px 4px;
-  }
-  .btn-text-action:hover { color: var(--accent); }
-
-  /* Suggestion Chips */
-  #chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 4px 24px 12px;
-    flex-shrink: 0;
-  }
-  .suggestion-chip {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    border-radius: 20px;
-    padding: 6px 13px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .suggestion-chip:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* Composer Dock */
-  .composer-dock {
-    padding: 14px 24px calc(16px + env(safe-area-inset-bottom));
-    background-color: var(--bg-main);
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  .composer-frame {
+  .msg-actions {
     display: flex;
     gap: 10px;
-    align-items: flex-end;
-    background: var(--bg-input);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md);
-    padding: 8px 10px 8px 16px;
-    transition: border-color 0.15s;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
   }
-  .composer-frame:focus-within {
-    border-color: var(--accent);
+  .msg-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .msg-action-btn:hover { color: var(--text-primary); }
+
+  /* Floating ChatGPT Composer */
+  .composer-fixed-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, transparent 0%, var(--bg-main) 35%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .composer-capsule {
+    width: 100%;
+    max-width: 760px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    padding: 10px 14px 10px 18px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  .composer-capsule:focus-within {
+    border-color: var(--border-strong);
   }
 
   #user-input {
@@ -601,157 +576,219 @@
     outline: none;
     color: var(--text-primary);
     font-family: inherit;
-    font-size: 14.5px;
+    font-size: 15px;
     line-height: 1.45;
     resize: none;
     max-height: 120px;
     padding: 4px 0;
   }
-  #user-input::placeholder { color: var(--text-tertiary); }
+  #user-input::placeholder { color: var(--text-muted); }
 
   #send-btn {
-    background: var(--accent);
-    color: var(--accent-text);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #0d0d0d;
     border: none;
-    border-radius: var(--radius-sm);
-    padding: 8px 16px;
-    font-weight: 700;
-    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
+    font-size: 16px;
+    font-weight: 700;
   }
-  #send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #send-btn:disabled {
+    background: #424242;
+    color: #8e8e8e;
+    cursor: not-allowed;
+  }
 
-  /* Typing Dot Indicator */
-  .typing-wave { display: flex; gap: 4px; padding: 4px 2px; }
+  .disclaimer-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  /* Chips */
+  .chips-row {
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .prompt-chip {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .prompt-chip:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* Typing dots */
+  .typing-wave { display: flex; gap: 4px; padding: 6px 0; }
   .typing-wave span {
     width: 6px; height: 6px; border-radius: 50%;
-    background: var(--text-secondary);
+    background: var(--text-muted);
     animation: wavePulse 1s infinite ease-in-out;
   }
   .typing-wave span:nth-child(2) { animation-delay: 0.15s; }
   .typing-wave span:nth-child(3) { animation-delay: 0.3s; }
   @keyframes wavePulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+  .error-text {
+    background: var(--danger-subtle);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger);
+    font-size: 13px;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    #sidebar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      transform: translateX(-100%);
+    }
+    #sidebar.open { transform: translateX(0); }
+  }
 </style>
 </head>
 <body>
 
-<div class="app-frame">
-  <header>
-    <div class="brand-area">
-      <div class="brand-logo">AI</div>
-      <div class="brand-details">
-        <h1 class="brand-title">PrepCoach</h1>
-        <p class="brand-sub" id="header-sub">Practice questions, company research & resume checks.</p>
-        <div id="session-badge"></div>
-      </div>
+<div class="app-shell">
+  <!-- Left ChatGPT Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <a href="#" class="brand-logo">
+        <div class="brand-icon">AI</div>
+        <span>PrepCoach</span>
+      </a>
+      <button class="btn-icon-ghost" id="sidebar-close-btn" title="Close sidebar">&times;</button>
     </div>
-    <div class="nav-controls">
-      <button class="btn-nav" id="history-btn">History</button>
-      <button class="btn-nav" id="reset-btn">New session</button>
-      <button class="btn-nav" id="logout-btn">Log out</button>
+
+    <button class="btn-new-chat" id="btn-sidebar-new">
+      <span>+</span>
+      <span>New chat</span>
+    </button>
+
+    <div class="sidebar-section-title">Recents</div>
+    <div class="recents-list" id="sidebar-recents"></div>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar-circle" id="user-avatar">U</div>
+        <span class="user-email-text" id="user-email-label">Account</span>
+      </div>
+      <button class="btn-icon-ghost" id="logout-btn" title="Log out">Log out</button>
     </div>
-  </header>
+  </aside>
 
-  <!-- Screen 1: Auth -->
-  <section id="auth" class="screen">
-    <div class="card-container">
-      <div class="card-head">
-        <h2 id="auth-title">Welcome back</h2>
-        <p id="auth-lede">Sign in to start practicing and access your saved sessions.</p>
+  <!-- Main Viewport -->
+  <main id="main-viewport">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="toggle-sidebar-btn" id="sidebar-toggle" title="Toggle sidebar">&#9776;</button>
+        <span class="current-session-title" id="top-title">PrepCoach</span>
       </div>
-
-      <div class="tabs-pill">
-        <button type="button" class="tab-item active" id="tab-login">Log in</button>
-        <button type="button" class="tab-item" id="tab-register">Sign up</button>
+      <div class="session-actions-top" id="top-actions" style="display:none;">
+        <button class="btn-action-small" id="top-delete-resume-btn" title="Delete stored resume">Delete resume</button>
+        <button class="btn-action-small danger" id="top-delete-chat-btn" title="Delete this session">Delete chat</button>
       </div>
+    </header>
 
-      <div class="field-group">
-        <label for="auth-email">Email Address</label>
-        <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
-      </div>
+    <!-- View 1: Auth (Login / Sign up) -->
+    <section class="view-panel" id="view-auth">
+      <div class="auth-card">
+        <h2 id="auth-heading">Welcome back</h2>
 
-      <div class="field-group">
-        <label for="auth-password">Password</label>
-        <div class="input-wrapper">
-          <input id="auth-password" class="with-btn" type="password" placeholder="At least 8 characters" autocomplete="current-password">
-          <button type="button" class="pwd-toggle-btn" id="toggle-pwd">Show</button>
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn active" id="tab-login">Log in</button>
+          <button type="button" class="auth-tab-btn" id="tab-register">Sign up</button>
         </div>
-        <p class="caption-note" id="auth-hint" style="display:none;">Must be between 8 and 72 characters.</p>
-      </div>
 
-      <button class="btn-action-primary" id="auth-submit">Log in</button>
-      <div id="auth-error" class="msg-error-banner"></div>
-    </div>
-  </section>
-
-  <!-- Screen 2: Setup -->
-  <section id="setup" class="screen">
-    <div class="card-container wide">
-      <div class="card-head">
-        <h2>Start a practice session</h2>
-        <p>Target role, company, and your resume will tailor every DSA problem, behavioral prompt, and briefing.</p>
-      </div>
-
-      <div class="field-group">
-        <label for="company">Target Company</label>
-        <input id="company" type="text" placeholder="e.g. Google, Amazon, Meta" autocomplete="off">
-      </div>
-
-      <div class="field-group">
-        <label for="role">Target Role</label>
-        <input id="role" type="text" placeholder="e.g. Software Engineer, Machine Learning Engineer" autocomplete="off">
-      </div>
-
-      <div class="field-group">
-        <label for="resume">Resume (PDF)</label>
-        <label class="resume-drop" for="resume">
-          <span class="resume-text" id="file-name-label">Upload your text-based PDF (max 5 MB)</span>
-          <span class="resume-btn-tag">Browse</span>
-          <input id="resume" type="file" accept="application/pdf,.pdf">
-        </label>
-        <p class="caption-note">Kept securely in your session state so you can resume anytime or delete it from History.</p>
-      </div>
-
-      <button class="btn-action-primary" id="start-btn">Start session</button>
-      <div id="setup-error" class="msg-error-banner"></div>
-    </div>
-  </section>
-
-  <!-- Screen 3: History -->
-  <section id="history" class="screen">
-    <div id="history-list-view">
-      <button class="btn-text-action" id="history-close">&larr; Back to chat</button>
-      <h2 style="font-size: 19px; font-weight:700; margin-top: 10px;">Your past sessions</h2>
-      <div id="history-list" class="history-grid"></div>
-    </div>
-
-    <div id="history-detail" style="display:none;">
-      <button class="btn-text-action" id="history-back">&larr; All sessions</button>
-      <div style="background:var(--bg-card); padding:16px 20px; border-radius:12px; border:1px solid var(--border); margin:12px 0;">
-        <h2 id="history-detail-title" style="font-size: 17px; font-weight:700;"></h2>
-        <div class="history-button-row" id="history-actions" style="display:none;">
-          <button class="btn-history-ctrl primary" id="continue-session-btn">Continue session</button>
-          <button class="btn-history-ctrl danger" id="delete-resume-btn">Delete resume</button>
-          <button class="btn-history-ctrl danger" id="delete-chat-btn">Delete chat</button>
+        <div class="auth-field">
+          <label for="auth-email">Email address</label>
+          <div class="auth-input-wrapper">
+            <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+          </div>
         </div>
-        <p id="history-status" class="caption-note" style="margin-top:8px;"></p>
-      </div>
-      <div id="history-messages" style="display:flex; flex-direction:column; gap:16px;"></div>
-    </div>
-  </section>
 
-  <!-- Screen 4: Chat -->
-  <section id="chat-screen" class="screen">
-    <div id="messages"></div>
-    <div id="chips"></div>
-    <div class="composer-dock">
-      <div class="composer-frame">
-        <textarea id="user-input" rows="1" maxlength="2000" placeholder="Ask for a DSA problem, behavioral question, company research, or resume check..."></textarea>
-        <button id="send-btn">Send</button>
+        <div class="auth-field">
+          <label for="auth-password">Password</label>
+          <div class="auth-input-wrapper">
+            <input id="auth-password" type="password" placeholder="At least 8 characters" autocomplete="current-password">
+          </div>
+        </div>
+
+        <button class="btn-auth-submit" id="auth-submit">Log in</button>
+        <div class="error-text" id="auth-error"></div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- View 2: Setup (New Interview Session) -->
+    <section class="view-panel" id="view-setup">
+      <div class="setup-container">
+        <div class="setup-head">
+          <h2>Start a practice session</h2>
+          <p>Tell me who you’re preparing for and upload your resume. Every problem, behavioral prompt, and briefing will be calibrated to you.</p>
+        </div>
+
+        <div class="auth-field">
+          <label for="company">Target Company</label>
+          <div class="auth-input-wrapper">
+            <input id="company" type="text" placeholder="e.g. Google, Amazon, Meta" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="role">Target Role</label>
+          <div class="auth-input-wrapper">
+            <input id="role" type="text" placeholder="e.g. Software Engineer, Machine Learning Engineer" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="resume">Resume (PDF)</label>
+          <label class="file-drop-box" for="resume">
+            <span id="resume-label" style="font-size:13px; color:var(--text-secondary);">Upload text-based PDF (max 5 MB)</span>
+            <span class="btn-action-small">Browse</span>
+            <input id="resume" type="file" accept="application/pdf,.pdf">
+          </label>
+        </div>
+
+        <button class="btn-auth-submit" id="start-btn">Start session</button>
+        <div class="error-text" id="setup-error"></div>
+      </div>
+    </section>
+
+    <!-- View 3: Chat View -->
+    <section class="view-panel" id="view-chat">
+      <div class="chat-scroll-area" id="chat-scroller">
+        <div class="messages-thread" id="messages-container"></div>
+      </div>
+
+      <div class="composer-fixed-bottom">
+        <div class="chips-row" id="chips-container"></div>
+        <div class="composer-capsule">
+          <textarea id="user-input" rows="1" maxlength="2000" placeholder="Ask for a DSA problem, behavioral question, company research, or resume check..."></textarea>
+          <button id="send-btn" title="Send message">&uarr;</button>
+        </div>
+        <div class="disclaimer-text">PrepCoach can make mistakes. Verify important information.</div>
+      </div>
+    </section>
+  </main>
 </div>
 
 <script>
@@ -763,41 +800,52 @@
   let token = null;
   let userEmail = null;
   let threadId = null;
-  let nearBottom = true;
   let busy = false;
   let lastUserText = null;
   let authMode = "login";
-  let selectedHistorySession = null;
-  let selectedSessionCanContinue = false;
+  let sessionsCache = [];
 
   class AuthError extends Error {}
 
-  const screens = {
-    auth: document.getElementById("auth"),
-    setup: document.getElementById("setup"),
-    history: document.getElementById("history"),
-    chat: document.getElementById("chat-screen"),
-  };
-
-  const sessionBadge = document.getElementById("session-badge");
-  const messagesEl = document.getElementById("messages");
-  const setupError = document.getElementById("setup-error");
-  const authError = document.getElementById("auth-error");
-  const chipsEl = document.getElementById("chips");
-  const inputEl = document.getElementById("user-input");
-  const sendBtn = document.getElementById("send-btn");
-  const startBtn = document.getElementById("start-btn");
-  const resetBtn = document.getElementById("reset-btn");
+  // UI Element Refs
+  const sidebar = document.getElementById("sidebar");
+  const sidebarToggleBtn = document.getElementById("sidebar-toggle");
+  const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
+  const btnSidebarNew = document.getElementById("btn-sidebar-new");
+  const sidebarRecents = document.getElementById("sidebar-recents");
+  const userAvatar = document.getElementById("user-avatar");
+  const userEmailLabel = document.getElementById("user-email-label");
   const logoutBtn = document.getElementById("logout-btn");
-  const historyBtn = document.getElementById("history-btn");
-  const authSubmit = document.getElementById("auth-submit");
+
+  const topTitle = document.getElementById("top-title");
+  const topActions = document.getElementById("top-actions");
+  const topDeleteResumeBtn = document.getElementById("top-delete-resume-btn");
+  const topDeleteChatBtn = document.getElementById("top-delete-chat-btn");
+
+  const viewAuth = document.getElementById("view-auth");
+  const viewSetup = document.getElementById("view-setup");
+  const viewChat = document.getElementById("view-chat");
+
+  const authHeading = document.getElementById("auth-heading");
   const tabLogin = document.getElementById("tab-login");
   const tabRegister = document.getElementById("tab-register");
   const authEmail = document.getElementById("auth-email");
   const authPassword = document.getElementById("auth-password");
-  const togglePwdBtn = document.getElementById("toggle-pwd");
+  const authSubmit = document.getElementById("auth-submit");
+  const authError = document.getElementById("auth-error");
+
+  const companyInput = document.getElementById("company");
+  const roleInput = document.getElementById("role");
   const resumeInput = document.getElementById("resume");
-  const fileNameLabel = document.getElementById("file-name-label");
+  const resumeLabel = document.getElementById("resume-label");
+  const startBtn = document.getElementById("start-btn");
+  const setupError = document.getElementById("setup-error");
+
+  const chatScroller = document.getElementById("chat-scroller");
+  const messagesContainer = document.getElementById("messages-container");
+  const chipsContainer = document.getElementById("chips-container");
+  const inputEl = document.getElementById("user-input");
+  const sendBtn = document.getElementById("send-btn");
 
   const SUGGESTIONS = [
     "Give me a DSA question",
@@ -809,54 +857,47 @@
   const AGENT_LABELS = {
     dsa: "DSA Practice",
     behavioral: "Behavioral",
-    company_research: "Company Briefing",
+    company_research: "Company Intel",
     resume_gap: "Resume Check",
     general_chat: "Coach",
   };
 
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", () => window.scrollTo(0, 0));
-  }
-  window.addEventListener("scroll", () => {
-    if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
+  // Sidebar toggle
+  sidebarToggleBtn.addEventListener("click", () => sidebar.classList.toggle("open"));
+  sidebarCloseBtn.addEventListener("click", () => sidebar.classList.remove("open"));
+
+  // Navigation
+  btnSidebarNew.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    clearChatUI();
+    showView("setup");
   });
 
-  startBtn.addEventListener("click", startSession);
-  sendBtn.addEventListener("click", () => sendMessage());
-  resetBtn.addEventListener("click", () => resetSession());
   logoutBtn.addEventListener("click", logout);
-  historyBtn.addEventListener("click", openHistory);
-  authSubmit.addEventListener("click", submitAuth);
+
+  // Auth toggle
   tabLogin.addEventListener("click", () => setAuthMode("login"));
   tabRegister.addEventListener("click", () => setAuthMode("register"));
-
-  togglePwdBtn.addEventListener("click", () => {
-    const isHidden = authPassword.type === "password";
-    authPassword.type = isHidden ? "text" : "password";
-    togglePwdBtn.textContent = isHidden ? "Hide" : "Show";
-  });
-
-  resumeInput.addEventListener("change", () => {
-    const f = resumeInput.files[0];
-    if (f) {
-      const sizeKb = Math.max(1, Math.round(f.size / 1024));
-      fileNameLabel.textContent = `${f.name} (${sizeKb} KB)`;
-      fileNameLabel.classList.add("chosen");
-    } else {
-      fileNameLabel.textContent = "Upload your text-based PDF (max 5 MB)";
-      fileNameLabel.classList.remove("chosen");
-    }
-  });
-
-  document.getElementById("history-close").addEventListener("click", () => showScreen(threadId ? "chat" : "setup"));
-  document.getElementById("history-back").addEventListener("click", showHistoryList);
-  document.getElementById("continue-session-btn").addEventListener("click", continueHistorySession);
-  document.getElementById("delete-resume-btn").addEventListener("click", deleteHistoryResume);
-  document.getElementById("delete-chat-btn").addEventListener("click", deleteHistoryChat);
-
+  authSubmit.addEventListener("click", submitAuth);
   authEmail.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuth(); });
   authPassword.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuth(); });
 
+  // Setup form
+  resumeInput.addEventListener("change", () => {
+    const f = resumeInput.files[0];
+    if (f) {
+      const kb = Math.max(1, Math.round(f.size / 1024));
+      resumeLabel.textContent = `${f.name} (${kb} KB)`;
+      resumeLabel.style.color = "var(--text-primary)";
+    } else {
+      resumeLabel.textContent = "Upload text-based PDF (max 5 MB)";
+      resumeLabel.style.color = "var(--text-secondary)";
+    }
+  });
+
+  startBtn.addEventListener("click", startSession);
+
+  // Chat input
   inputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -869,36 +910,36 @@
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
   });
 
-  messagesEl.addEventListener("scroll", () => {
-    nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
-  }, { passive: true });
+  sendBtn.addEventListener("click", () => sendMessage());
 
-  function showScreen(name) {
-    for (const [key, el] of Object.entries(screens)) {
-      el.style.display = key === name ? "flex" : "none";
+  topDeleteResumeBtn.addEventListener("click", deleteCurrentResume);
+  topDeleteChatBtn.addEventListener("click", deleteCurrentChat);
+
+  // Helpers
+  function showView(view) {
+    viewAuth.style.display = view === "auth" ? "flex" : "none";
+    viewSetup.style.display = view === "setup" ? "flex" : "none";
+    viewChat.style.display = view === "chat" ? "flex" : "none";
+
+    sidebar.style.display = view === "auth" ? "none" : "flex";
+    sidebarToggleBtn.style.display = view === "auth" ? "none" : "block";
+
+    if (view === "auth") topTitle.textContent = "PrepCoach";
+    else if (view === "setup") {
+      topTitle.textContent = "New Practice Session";
+      topActions.style.display = "none";
     }
-    const loggedIn = !!token;
-    logoutBtn.style.display = loggedIn ? "block" : "none";
-    historyBtn.style.display = loggedIn && (name === "setup" || name === "chat") ? "block" : "none";
-    resetBtn.style.display = name === "chat" ? "block" : "none";
-    sessionBadge.style.display = name === "chat" ? "block" : "none";
-  }
-
-  function showError(el, message) {
-    el.textContent = message;
-    el.style.display = "block";
   }
 
   function authHeaders(extra) {
     return Object.assign({ Authorization: `Bearer ${token}` }, extra || {});
   }
 
-  async function authFetch(url, opts) {
-    opts = opts || {};
+  async function authFetch(url, opts = {}) {
     opts.headers = authHeaders(opts.headers);
     const res = await fetch(url, opts);
     if (res.status === 401) {
-      forceLogin("Your login expired. Please log in again.");
+      forceLogin("Your session expired. Please log in again.");
       throw new AuthError("unauthorized");
     }
     return res;
@@ -908,29 +949,9 @@
     try {
       const body = await res.json();
       if (typeof body.detail === "string") return body.detail;
-      if (Array.isArray(body.detail) && body.detail[0] && body.detail[0].msg) {
-        return String(body.detail[0].msg).replace(/^Value error, /, "");
-      }
+      if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
     } catch (_) {}
     return fallback;
-  }
-
-  function clearChatState() {
-    threadId = null;
-    lastUserText = null;
-    busy = false;
-    sendBtn.disabled = false;
-    messagesEl.innerHTML = "";
-    chipsEl.innerHTML = "";
-    document.getElementById("company").value = "";
-    document.getElementById("role").value = "";
-    resumeInput.value = "";
-    fileNameLabel.textContent = "Upload your text-based PDF (max 5 MB)";
-    fileNameLabel.classList.remove("chosen");
-    inputEl.value = "";
-    inputEl.style.height = "auto";
-    startBtn.disabled = false;
-    startBtn.textContent = "Start session";
   }
 
   function setAuthMode(mode) {
@@ -939,12 +960,7 @@
     tabLogin.classList.toggle("active", !isReg);
     tabRegister.classList.toggle("active", isReg);
     authSubmit.textContent = isReg ? "Create account" : "Log in";
-    document.getElementById("auth-title").textContent = isReg ? "Create your account" : "Welcome back";
-    document.getElementById("auth-lede").textContent = isReg
-      ? "Create an account so your sessions and resume history are saved."
-      : "Sign in to start practicing and access your saved sessions.";
-    document.getElementById("auth-hint").style.display = isReg ? "block" : "none";
-    authPassword.autocomplete = isReg ? "new-password" : "current-password";
+    authHeading.textContent = isReg ? "Create your account" : "Welcome back";
     authError.style.display = "none";
   }
 
@@ -976,7 +992,7 @@
         });
       }
 
-      if (!res.ok) throw new Error(await readError(res, "Couldn't sign you in. Please try again."));
+      if (!res.ok) throw new Error(await readError(res, "Couldn't sign you in."));
 
       const data = await res.json();
       token = data.access_token;
@@ -985,285 +1001,221 @@
       authPassword.value = "";
       enterApp();
     } catch (err) {
-      showError(authError, err.message || "Couldn't sign you in. Please try again.");
+      showError(authError, err.message);
     } finally {
       authSubmit.disabled = false;
       authSubmit.textContent = authMode === "register" ? "Create account" : "Log in";
     }
   }
 
-  function enterApp() {
-    document.getElementById("header-sub").textContent = userEmail
-      ? `Signed in as ${userEmail}`
-      : "Practice questions, company research & resume checks.";
-    showScreen("setup");
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.style.display = "block";
   }
 
-  function forceLogin(message) {
+  function enterApp() {
+    userAvatar.textContent = userEmail ? userEmail[0].toUpperCase() : "U";
+    userEmailLabel.textContent = userEmail || "Account";
+    loadSidebarSessions();
+    showView("setup");
+  }
+
+  function forceLogin(msg) {
     token = null;
     userEmail = null;
     localStorage.removeItem(TOKEN_KEY);
-    clearChatState();
-    document.getElementById("header-sub").textContent = "Practice questions, company research & resume checks.";
-    showScreen("auth");
-    if (message) showError(authError, message);
+    clearChatUI();
+    showView("auth");
+    if (msg) showError(authError, msg);
   }
 
   function logout() { forceLogin(); }
 
-  async function waitUntilReady(onStatus) {
-    const deadline = Date.now() + 120000;
-    while (Date.now() < deadline) {
-      try {
-        const res = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.ready !== false) return true;
-          onStatus("Warming up AI engine...");
-        } else {
-          onStatus("Waking server...");
-        }
-      } catch (_) {
-        onStatus("Waking server...");
-      }
-      await new Promise(r => setTimeout(r, 2000));
+  // Load and render ChatGPT Sidebar Recents
+  async function loadSidebarSessions() {
+    try {
+      const res = await authFetch(`${API_BASE}/sessions`);
+      if (!res.ok) return;
+      sessionsCache = await res.json();
+      renderSidebarRecents();
+    } catch (_) {}
+  }
+
+  function renderSidebarRecents() {
+    sidebarRecents.innerHTML = "";
+    if (sessionsCache.length === 0) {
+      sidebarRecents.innerHTML = `<div style="padding:12px; font-size:12px; color:var(--text-muted);">No past sessions</div>`;
+      return;
     }
-    return false;
+
+    sessionsCache.forEach((s) => {
+      const a = document.createElement("a");
+      a.className = "recent-item" + (s.id === threadId ? " active" : "");
+      a.href = "#";
+      a.innerHTML = `<span class="recent-item-title">${escapeHtml(s.title)}</span>`;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        sidebar.classList.remove("open");
+        openSessionById(s.id, s.title);
+      });
+      sidebarRecents.appendChild(a);
+    });
+  }
+
+  async function openSessionById(sessionId, title) {
+    clearChatUI();
+    threadId = sessionId;
+    topTitle.textContent = title;
+    topActions.style.display = "flex";
+    renderSidebarRecents();
+    showView("chat");
+
+    try {
+      const [msgRes, statusRes] = await Promise.all([
+        authFetch(`${API_BASE}/sessions/${encodeURIComponent(sessionId)}/messages`),
+        authFetch(`${API_BASE}/sessions/${encodeURIComponent(sessionId)}/status`)
+      ]);
+
+      const msgs = await msgRes.json();
+      const status = await statusRes.json();
+
+      messagesContainer.innerHTML = "";
+      if (msgs.length === 0) {
+        addMessage("ai", "Session reopened! Ask for a DSA question, behavioral prompt, or resume check.");
+        renderChips();
+      } else {
+        msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content, { agent: m.agent }));
+      }
+
+      if (!status.can_continue) {
+        topDeleteResumeBtn.style.display = "none";
+        addMessage("ai", "Note: Resume data for this session has been removed. Conversation is in read-only mode.", { isSystem: true });
+        inputEl.disabled = true;
+        sendBtn.disabled = true;
+      } else {
+        topDeleteResumeBtn.style.display = "inline-block";
+        inputEl.disabled = false;
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+      scrollToBottom();
+    } catch (err) {
+      alert("Couldn't open session: " + err.message);
+    }
   }
 
   async function startSession() {
-    const company = document.getElementById("company").value.trim();
-    const role = document.getElementById("role").value.trim();
-    const resumeFile = resumeInput.files[0];
+    const company = companyInput.value.trim();
+    const role = roleInput.value.trim();
+    const file = resumeInput.files[0];
 
-    if (!company || !role || !resumeFile) {
-      showError(setupError, "Please fill in both fields and choose your resume.");
+    if (!company || !role || !file) {
+      showError(setupError, "Please enter company, role, and upload your resume.");
       return;
     }
-    if (!resumeFile.name.toLowerCase().endsWith(".pdf")) {
-      showError(setupError, "Please upload your resume as a PDF file.");
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      showError(setupError, "Resume must be a PDF file.");
       return;
     }
-    if (resumeFile.size > MAX_RESUME_BYTES) {
-      showError(setupError, "Resume is too large (max 5 MB).");
+    if (file.size > MAX_RESUME_BYTES) {
+      showError(setupError, "Resume too large (max 5 MB).");
       return;
     }
 
     startBtn.disabled = true;
-    startBtn.textContent = "Connecting...";
+    startBtn.textContent = "Starting...";
     setupError.style.display = "none";
 
     try {
-      const ready = await waitUntilReady(st => startBtn.textContent = st);
-      if (!ready) throw new Error("Server took too long to wake up. Please try again.");
-
-      startBtn.textContent = "Uploading & starting...";
-
       const form = new FormData();
       form.append("company_name", company);
       form.append("role", role);
-      form.append("resume", resumeFile);
+      form.append("resume", file);
 
       const res = await authFetch(`${API_BASE}/session`, { method: "POST", body: form });
-      if (!res.ok) throw new Error(await readError(res, "Couldn't start a session."));
+      if (!res.ok) throw new Error(await readError(res, "Couldn't start session."));
 
       const data = await res.json();
       threadId = data.thread_id;
-      sessionBadge.textContent = `${company} · ${role}`;
-      showScreen("chat");
+      const title = `${role} @ ${company}`;
 
-      addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis or how to explain a project.");
+      clearChatUI();
+      topTitle.textContent = title;
+      topActions.style.display = "flex";
+      topDeleteResumeBtn.style.display = "inline-block";
+      showView("chat");
+
+      addMessage("ai", "I'm your interview coach. Ask me for a calibrated DSA question, a behavioral prompt, company interview intel, or resume feedback.");
       renderChips();
+
+      // Refresh recents
+      await loadSidebarSessions();
+      inputEl.focus();
     } catch (err) {
       if (err instanceof AuthError) return;
-      showError(setupError, err.message || "Couldn't start session.");
+      showError(setupError, err.message);
+    } finally {
       startBtn.disabled = false;
       startBtn.textContent = "Start session";
     }
   }
 
-  function resetSession(errMsg) {
-    clearChatState();
-    showScreen("setup");
-    if (typeof errMsg === "string" && errMsg) showError(setupError, errMsg);
-    else setupError.style.display = "none";
+  function clearChatUI() {
+    threadId = null;
+    busy = false;
+    messagesContainer.innerHTML = "";
+    chipsContainer.innerHTML = "";
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+    companyInput.value = "";
+    roleInput.value = "";
+    resumeInput.value = "";
+    resumeLabel.textContent = "Upload text-based PDF (max 5 MB)";
+    resumeLabel.style.color = "var(--text-secondary)";
+    topActions.style.display = "none";
   }
 
-  async function openHistory() {
-    showScreen("history");
-    showHistoryList();
-    const listEl = document.getElementById("history-list");
-    listEl.innerHTML = `<p class="caption-note">Loading past sessions...</p>`;
+  async function deleteCurrentResume() {
+    if (!threadId) return;
+    if (!confirm("Delete resume data for this session? Chat messages will remain, but you won't be able to generate new responses.")) return;
 
     try {
-      const res = await authFetch(`${API_BASE}/sessions`);
-      if (!res.ok) throw new Error(await readError(res, "Couldn't load sessions."));
-      const sessions = await res.json();
-
-      listEl.innerHTML = "";
-      if (sessions.length === 0) {
-        listEl.innerHTML = `<p class="caption-note">No saved sessions yet. Start one to see it here.</p>`;
-        return;
-      }
-      sessions.forEach(s => {
-        const item = document.createElement("div");
-        item.className = "history-card-item";
-        item.innerHTML = `
-          <div>
-            <div class="history-item-title">${escapeHtml(s.title)}</div>
-            <div class="history-item-date">${new Date(s.created_at).toLocaleString()}</div>
-          </div>
-          <span style="color:var(--text-tertiary);">&rsaquo;</span>
-        `;
-        item.addEventListener("click", () => openHistoryDetail(s));
-        listEl.appendChild(item);
-      });
+      const res = await authFetch(`${API_BASE}/session/${encodeURIComponent(threadId)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await readError(res, "Couldn't delete resume."));
+      topDeleteResumeBtn.style.display = "none";
+      inputEl.disabled = true;
+      sendBtn.disabled = true;
+      addMessage("ai", "Resume data deleted. This chat is now read-only.", { isSystem: true });
     } catch (err) {
-      if (err instanceof AuthError) return;
-      listEl.innerHTML = `<p class="msg-error-banner" style="display:block;">${escapeHtml(err.message)}</p>`;
+      alert(err.message);
     }
   }
 
-  function showHistoryList() {
-    document.getElementById("history-list-view").style.display = "block";
-    document.getElementById("history-detail").style.display = "none";
-  }
-
-  async function openHistoryDetail(session) {
-    selectedHistorySession = session;
-    selectedSessionCanContinue = false;
-    document.getElementById("history-list-view").style.display = "none";
-    document.getElementById("history-detail").style.display = "block";
-    document.getElementById("history-detail-title").textContent = session.title;
-    const box = document.getElementById("history-messages");
-    const actions = document.getElementById("history-actions");
-    const status = document.getElementById("history-status");
-    const continueBtn = document.getElementById("continue-session-btn");
-    const deleteResumeBtn = document.getElementById("delete-resume-btn");
-    const deleteChatBtn = document.getElementById("delete-chat-btn");
-
-    actions.style.display = "none";
-    status.textContent = "Checking resume data availability...";
-    box.innerHTML = `<p class="caption-note">Loading conversation history...</p>`;
+  async function deleteCurrentChat() {
+    if (!threadId) return;
+    if (!confirm("Permanently delete this entire chat session?")) return;
 
     try {
-      const [messagesRes, statusRes] = await Promise.all([
-        authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/messages`),
-        authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/status`)
-      ]);
-      if (!messagesRes.ok) throw new Error(await readError(messagesRes, "Couldn't load history."));
-      if (!statusRes.ok) throw new Error(await readError(statusRes, "Couldn't verify resume status."));
-
-      const msgs = await messagesRes.json();
-      const state = await statusRes.json();
-
-      box.innerHTML = "";
-      if (msgs.length === 0) box.innerHTML = `<p class="caption-note">This session has no messages yet.</p>`;
-      msgs.forEach(m => addMessage(m.role === "user" ? "user" : "ai", m.content, { container: box, agent: m.agent }));
-
-      selectedSessionCanContinue = !!state.can_continue;
-      actions.style.display = "flex";
-      continueBtn.style.display = selectedSessionCanContinue ? "inline-block" : "none";
-      deleteResumeBtn.style.display = selectedSessionCanContinue ? "inline-block" : "none";
-      deleteChatBtn.style.display = "inline-block";
-      status.textContent = selectedSessionCanContinue
-        ? "Resume data is available. You can continue this chat."
-        : "Resume data has been deleted or expired. Chat history is read-only.";
-    } catch (err) {
-      if (err instanceof AuthError) return;
-      box.innerHTML = `<p class="msg-error-banner" style="display:block;">${escapeHtml(err.message)}</p>`;
-      status.textContent = "";
-    }
-  }
-
-  async function continueHistorySession() {
-    if (!selectedHistorySession || !selectedSessionCanContinue) return;
-    const session = selectedHistorySession;
-    const btn = document.getElementById("continue-session-btn");
-    btn.disabled = true;
-    btn.textContent = "Opening...";
-    try {
-      const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/messages`);
-      if (!res.ok) throw new Error(await readError(res, "Couldn't reopen session."));
-      const msgs = await res.json();
-      threadId = session.id;
-      lastUserText = null;
-      busy = false;
-      sendBtn.disabled = false;
-      messagesEl.innerHTML = "";
-      if (msgs.length === 0) {
-        addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume.");
-        renderChips();
-      } else {
-        msgs.forEach(m => addMessage(m.role === "user" ? "user" : "ai", m.content, { agent: m.agent }));
-        chipsEl.innerHTML = "";
-      }
-      sessionBadge.textContent = session.title;
-      showScreen("chat");
-      nearBottom = true;
-      scrollToBottomIfNeeded();
-      inputEl.value = "";
-      inputEl.style.height = "auto";
-      inputEl.focus();
-    } catch (err) {
-      if (!(err instanceof AuthError)) alert(err.message || "Couldn't continue session.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Continue session";
-    }
-  }
-
-  async function deleteHistoryResume() {
-    if (!selectedHistorySession || !selectedSessionCanContinue) return;
-    if (!confirm("Delete the resume data for this session? Chat messages will remain readable, but you can no longer continue this chat.")) return;
-    const btn = document.getElementById("delete-resume-btn");
-    const status = document.getElementById("history-status");
-    btn.disabled = true;
-    btn.textContent = "Deleting...";
-    try {
-      const res = await authFetch(`${API_BASE}/session/${encodeURIComponent(selectedHistorySession.id)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await readError(res, "Couldn't delete resume data."));
-      selectedSessionCanContinue = false;
-      if (threadId === selectedHistorySession.id) clearChatState();
-      document.getElementById("continue-session-btn").style.display = "none";
-      btn.style.display = "none";
-      status.textContent = "Resume data deleted. Previous messages preserved.";
-    } catch (err) {
-      if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete resume data.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Delete resume";
-    }
-  }
-
-  async function deleteHistoryChat() {
-    if (!selectedHistorySession) return;
-    if (!confirm("Delete this session and all its messages permanently?")) return;
-    const btn = document.getElementById("delete-chat-btn");
-    btn.disabled = true;
-    btn.textContent = "Deleting...";
-    try {
-      const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(selectedHistorySession.id)}`, { method: "DELETE" });
+      const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(threadId)}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await readError(res, "Couldn't delete chat."));
-      if (threadId === selectedHistorySession.id) clearChatState();
-      selectedHistorySession = null;
-      await openHistory();
+      clearChatUI();
+      await loadSidebarSessions();
+      showView("setup");
     } catch (err) {
-      if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete chat.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Delete chat";
+      alert(err.message);
     }
   }
 
   function renderChips() {
-    chipsEl.innerHTML = "";
-    SUGGESTIONS.forEach(text => {
-      const c = document.createElement("button");
-      c.className = "suggestion-chip";
-      c.textContent = text;
-      c.addEventListener("click", () => sendMessage(text));
-      chipsEl.appendChild(c);
+    chipsContainer.innerHTML = "";
+    SUGGESTIONS.forEach((text) => {
+      const chip = document.createElement("button");
+      chip.className = "prompt-chip";
+      chip.textContent = text;
+      chip.addEventListener("click", () => sendMessage(text));
+      chipsContainer.appendChild(chip);
     });
   }
 
@@ -1275,12 +1227,12 @@
     const requestThreadId = threadId;
     busy = true;
     lastUserText = text;
-    chipsEl.innerHTML = "";
+    chipsContainer.innerHTML = "";
     if (!isRetry) addMessage("user", text);
     inputEl.value = "";
     inputEl.style.height = "auto";
-
     sendBtn.disabled = true;
+
     const typingRow = addTypingIndicator();
 
     try {
@@ -1294,13 +1246,8 @@
       if (threadId !== requestThreadId) return;
 
       if (!res.ok) {
-        if (res.status === 404) {
-          resetSession("Your session expired. Please start a new session and upload your resume again.");
-          return;
-        }
         const detail = await readError(res, `Request failed (${res.status}).`);
-        const isRetryable = res.status >= 500 || res.status === 429;
-        addMessage("ai", detail, { isError: true, showRetry: isRetryable });
+        addMessage("ai", detail, { isError: true });
         return;
       }
 
@@ -1309,7 +1256,7 @@
     } catch (err) {
       typingRow.remove();
       if (err instanceof AuthError || threadId !== requestThreadId) return;
-      addMessage("ai", "Couldn't reach the server. Please check your connection and try again.", { isError: true, showRetry: true });
+      addMessage("ai", "Couldn't reach server. Please check your connection.", { isError: true });
     } finally {
       if (threadId === requestThreadId) {
         busy = false;
@@ -1318,56 +1265,58 @@
     }
   }
 
-  function scrollToBottomIfNeeded() {
-    if (nearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+  function scrollToBottom() {
+    chatScroller.scrollTop = chatScroller.scrollHeight;
   }
 
   function addTypingIndicator() {
     const row = document.createElement("div");
-    row.className = "chat-turn ai";
+    row.className = "message-row ai";
     row.innerHTML = `
-      <div class="user-avatar ai">AI</div>
-      <div class="speech-container">
-        <div class="bubble-content"><div class="typing-wave"><span></span><span></span><span></span></div></div>
+      <div class="msg-avatar">AI</div>
+      <div class="msg-body">
+        <div class="typing-wave"><span></span><span></span><span></span></div>
       </div>
     `;
-    messagesEl.appendChild(row);
-    nearBottom = true;
-    scrollToBottomIfNeeded();
+    messagesContainer.appendChild(row);
+    scrollToBottom();
     return row;
   }
 
   function addMessage(role, text, opts = {}) {
-    const container = opts.container || messagesEl;
     const row = document.createElement("div");
-    row.className = `chat-turn ${role}`;
+    row.className = `message-row ${role}`;
 
-    const avatar = document.createElement("div");
-    avatar.className = `user-avatar ${role}`;
-    avatar.textContent = role === "ai" ? "AI" : (userEmail ? userEmail[0].toUpperCase() : "U");
-
-    const wrap = document.createElement("div");
-    wrap.className = "speech-container";
-
-    if (role === "ai" && !opts.isError && opts.agent && AGENT_LABELS[opts.agent]) {
-      const tag = document.createElement("span");
-      tag.className = "agent-label-pill";
-      tag.textContent = AGENT_LABELS[opts.agent];
-      wrap.appendChild(tag);
+    let avatarHtml = "";
+    if (role === "ai") {
+      avatarHtml = `<div class="msg-avatar">AI</div>`;
     }
 
-    const bubble = document.createElement("div");
-    bubble.className = "bubble-content" + (opts.isError ? " error" : "");
-    bubble.innerHTML = role === "ai" ? renderMarkdownLite(text) : escapeHtml(text);
-    wrap.appendChild(bubble);
+    let tagHtml = "";
+    if (role === "ai" && opts.agent && AGENT_LABELS[opts.agent]) {
+      tagHtml = `<div class="msg-tag">${AGENT_LABELS[opts.agent]}</div>`;
+    }
 
-    if (role === "ai") {
-      const foot = document.createElement("div");
-      foot.className = "bubble-actions-row";
+    let actionsHtml = "";
+    if (role === "ai" && !opts.isError && !opts.isSystem) {
+      actionsHtml = `
+        <div class="msg-actions">
+          <button class="msg-action-btn copy-btn">Copy</button>
+        </div>
+      `;
+    }
 
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "btn-text-action";
-      copyBtn.textContent = "Copy";
+    row.innerHTML = `
+      ${avatarHtml}
+      <div class="msg-body">
+        ${tagHtml}
+        <div class="msg-bubble ${opts.isError ? "error" : ""}">${role === "ai" ? renderMarkdownLite(text) : escapeHtml(text)}</div>
+        ${actionsHtml}
+      </div>
+    `;
+
+    const copyBtn = row.querySelector(".copy-btn");
+    if (copyBtn) {
       copyBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -1377,25 +1326,10 @@
         }
         setTimeout(() => (copyBtn.textContent = "Copy"), 1200);
       });
-      foot.appendChild(copyBtn);
-
-      if (opts.showRetry && lastUserText) {
-        const retryBtn = document.createElement("button");
-        retryBtn.className = "btn-text-action";
-        retryBtn.textContent = "Retry";
-        retryBtn.addEventListener("click", () => {
-          row.remove();
-          sendMessage(lastUserText, true);
-        });
-        foot.appendChild(retryBtn);
-      }
-      wrap.appendChild(foot);
     }
 
-    row.appendChild(avatar);
-    row.appendChild(wrap);
-    container.appendChild(row);
-    if (container === messagesEl) scrollToBottomIfNeeded();
+    messagesContainer.appendChild(row);
+    scrollToBottom();
     return row;
   }
 
@@ -1452,8 +1386,9 @@
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
+  // App init
   (async function init() {
-    showScreen("auth");
+    showView("auth");
     const saved = localStorage.getItem(TOKEN_KEY);
     if (!saved) return;
     token = saved;
@@ -1467,9 +1402,8 @@
         forceLogin();
       }
     } catch (_) {
-      showScreen("auth");
+      showView("auth");
       token = null;
-      showError(authError, "Couldn't reach server. Please try again in a moment.");
     }
   })();
 </script>
