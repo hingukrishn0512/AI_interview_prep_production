@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
@@ -216,6 +216,27 @@ def serve_frontend():
 def health_check():
     """Confirms the server is up. 'ready' turns true once the AI engine has loaded."""
     return {"status": "ok", "ready": is_ready()}
+
+
+@app.get("/admin/users")
+async def get_admin_users(db: AsyncSession = Depends(get_db)):
+    """Returns live registration count and user list."""
+    res = await db.execute(select(User.email, User.created_at).order_by(User.created_at.desc()))
+    users = res.all()
+    session_count = await db.scalar(select(func.count(ChatSession.id)))
+    message_count = await db.scalar(select(func.count(Message.id)))
+    return {
+        "total_users": len(users),
+        "total_sessions": session_count,
+        "total_messages": message_count,
+        "users": [
+            {
+                "email": u[0],
+                "joined": u[1].strftime("%Y-%m-%d %H:%M:%S") if u[1] else None,
+            }
+            for u in users
+        ],
+    }
 
 
 @app.post("/session", response_model=StartSessionResponse)
