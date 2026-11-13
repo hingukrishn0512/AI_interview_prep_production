@@ -2,493 +2,794 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Interview Prep Coach</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PrepCoach AI &mdash; Interview Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #12141c;
-    --panel: #1b1e2a;
-    --input-bg: #232739;
-    --text: #e8e6df;
-    --muted: #8a8fa3;
-    --accent: #e8a33d;
-    --accent-dim: #b97f2e;
-    --hairline: rgba(232, 230, 223, 0.1);
+    --bg-base: #07090e;
+    --bg-surface: #0e111a;
+    --bg-subtle: #141824;
+    --bg-elevated: #1a2030;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+    --accent: #f59e0b;
+    --accent-hover: #fbbf24;
+    --accent-glow: rgba(245, 158, 11, 0.14);
+    --accent-text: #0f0b00;
+    --danger: #ef4444;
+    --danger-subtle: rgba(239, 68, 68, 0.12);
+    --success: #10b981;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
   }
 
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
     height: 100%;
-    margin: 0;
-    overscroll-behavior: none;
-  }
-
-  body {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    height: 100dvh;
-    display: flex;
-    justify-content: center;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .app {
+  .app-frame {
     width: 100%;
-    max-width: 680px;
+    max-width: 920px;
     height: 100dvh;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    contain: layout size;
   }
 
+  @media (max-width: 920px) {
+    .app-frame { border: none; }
+  }
+
+  /* --- Top Navigation --- */
   header {
-    padding: calc(18px + env(safe-area-inset-top)) 20px 18px;
-    border-bottom: 1px solid var(--hairline);
+    padding: calc(14px + env(safe-area-inset-top)) 24px 14px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     flex-shrink: 0;
+    z-index: 10;
   }
 
-  .header-text { min-width: 0; }
-
-  .header-text h1 {
-    font-family: 'Source Serif 4', serif;
-    font-weight: 600;
-    font-size: 18px;
-    margin: 0 0 3px;
+  .brand-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
   }
 
-  .header-text p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12.5px;
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2a3449, #151a26);
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .brand-details { min-width: 0; }
+  .brand-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .brand-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 20px;
+    padding: 1px 7px;
+  }
+  .brand-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   #session-badge {
     display: none;
+    margin-top: 4px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
     color: var(--accent);
-    font-size: 12.5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    width: fit-content;
   }
 
-  .header-actions {
+  .nav-controls {
     display: flex;
     gap: 8px;
     flex-shrink: 0;
   }
 
-  .header-btn {
+  .btn-nav {
     display: none;
-    background: none;
-    border: 1px solid var(--hairline);
-    color: var(--muted);
-    border-radius: 6px;
-    padding: 6px 12px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
     font-family: inherit;
     font-size: 12.5px;
+    font-weight: 600;
     cursor: pointer;
-    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
   }
-  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-nav:hover {
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    background: var(--bg-elevated);
+  }
 
-  /* --- Shared screen layout --- */
-
+  /* --- Screens --- */
   .screen {
     display: none;
     flex: 1;
     min-height: 0;
-  }
-
-  #auth, #setup, #history {
-    flex-direction: column;
-    justify-content: center;
-    padding: 20px;
-    gap: 18px;
     overflow-y: auto;
   }
 
-  .lede {
-    font-family: 'Source Serif 4', serif;
-    font-size: 19px;
-    line-height: 1.5;
-    max-width: 46ch;
-    margin: 0;
+  #auth, #setup, #history {
+    padding: 32px 20px;
   }
 
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 13px; color: var(--muted); }
-
-  .field input {
-    background: var(--input-bg);
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
-    padding: 11px 13px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14.5px;
-  }
-  .field input:focus { outline: none; border-color: var(--accent); }
-
-  .field input[type="file"] { padding: 9px 11px; font-size: 13px; }
-  .field input[type="file"]::file-selector-button {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--hairline);
-    border-radius: 5px;
-    padding: 5px 10px;
-    margin-right: 10px;
-    cursor: pointer;
-    font-family: inherit;
+  #auth, #setup {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
-  .hint { color: var(--muted); font-size: 12px; margin: 0; }
-
-  button.primary {
-    background: var(--accent);
-    color: #1b1400;
-    border: none;
-    border-radius: 6px;
-    padding: 12px 18px;
-    font-family: inherit;
-    font-size: 14.5px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  button.primary:hover { background: var(--accent-dim); }
-  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .link-btn {
-    background: none;
-    border: none;
-    color: var(--accent);
-    font-family: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 0;
-    text-align: left;
-  }
-  .link-btn:hover { text-decoration: underline; }
-
-  .form-error { color: #e88a5f; font-size: 13px; display: none; margin: 0; }
-
-  /* --- History screen --- */
-
-  #history { justify-content: flex-start; }
-
-  .history-title {
-    font-family: 'Source Serif 4', serif;
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0;
-  }
-
-  #history-list { display: flex; flex-direction: column; gap: 8px; }
-
-  .history-item {
-    background: var(--panel);
-    border: 1px solid var(--hairline);
-    border-radius: 8px;
-    padding: 12px 14px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    text-align: left;
-    cursor: pointer;
+  .card-container {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
   }
-  .history-item:hover { border-color: var(--accent); }
-  .history-item small { color: var(--muted); font-size: 12px; }
 
-  #history-detail {
-    display: none;
+  .card-container.wide { max-width: 540px; }
+
+  .card-head h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .card-head p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Segmented Auth Tabs */
+  .tabs-pill {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    gap: 4px;
+  }
+
+  .tab-item {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-item.active {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  /* Form Inputs */
+  .field-group {
+    display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 6px;
+  }
+  .field-group label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .history-actions { display:flex; flex-wrap:wrap; gap:10px; }
-  .history-action-btn { border:1px solid var(--hairline); border-radius:6px; padding:9px 13px; font-family:inherit; font-size:13px; cursor:pointer; background:var(--panel); color:var(--text); }
-  .history-action-btn.primary-action { background:var(--accent); color:#1b1400; border-color:var(--accent); font-weight:600; }
-  .history-action-btn.danger-action { color:#e88a5f; }
-  .history-action-btn:disabled { opacity:.5; cursor:not-allowed; }
-  .history-status { color:var(--muted); font-size:12px; margin:0; }
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
 
-  /* --- Chat screen --- */
+  .field-group input[type="text"],
+  .field-group input[type="email"],
+  .field-group input[type="password"] {
+    width: 100%;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-group input:focus {
+    border-color: var(--accent);
+  }
+  .field-group input.with-btn { padding-right: 60px; }
 
-  #chat-screen { flex-direction: column; }
+  .pwd-toggle-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+  .pwd-toggle-btn:hover { color: var(--text-primary); }
+
+  /* Resume Picker */
+  .resume-drop {
+    position: relative;
+    background: var(--bg-base);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .resume-drop:hover {
+    border-color: var(--accent);
+    background: rgba(245, 158, 11, 0.02);
+  }
+  .resume-drop input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .resume-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .resume-text.chosen { color: var(--text-primary); font-weight: 500; }
+  .resume-btn-tag {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .caption-note {
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+    line-height: 1.45;
+  }
+
+  .btn-action-primary {
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-action-primary:hover { background: var(--accent-hover); }
+  .btn-action-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .msg-error-banner {
+    background: var(--danger-subtle);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: var(--danger);
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: none;
+    line-height: 1.4;
+  }
+
+  .features-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .feature-pill {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  /* --- History Screen --- */
+  #history {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .history-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .history-card-item {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .history-card-item:hover {
+    background: var(--bg-elevated);
+    border-color: var(--accent);
+  }
+  .history-item-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .history-item-date {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  .history-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .btn-history-ctrl {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .btn-history-ctrl:hover { background: var(--bg-elevated); color: var(--text-primary); }
+  .btn-history-ctrl.primary { background: var(--accent); color: var(--accent-text); border: none; }
+  .btn-history-ctrl.danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+  .btn-history-ctrl.danger:hover { background: var(--danger-subtle); }
+
+  /* --- Chat Screen --- */
+  #chat-screen {
+    flex-direction: column;
+    position: relative;
+  }
 
   #messages {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 24px 24px 12px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 20px;
   }
 
-  .row {
+  .chat-turn {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: flex-start;
-    animation: rise 0.25s ease-out;
   }
-  .row.user { flex-direction: row-reverse; }
+  .chat-turn.user { flex-direction: row-reverse; }
 
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    flex-shrink: 0;
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
-    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
   }
-  .avatar.ai {
-    background: rgba(232, 163, 61, 0.15);
+  .user-avatar.ai {
+    background: var(--accent-glow);
+    border: 1px solid rgba(245, 158, 11, 0.35);
     color: var(--accent);
   }
-  .avatar.user {
-    background: var(--panel);
-    border: 1px solid var(--hairline);
-    color: var(--muted);
+  .user-avatar.user {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
   }
 
-  .bubble-wrap { max-width: 82%; display: flex; flex-direction: column; gap: 4px; }
-  .row.user .bubble-wrap { align-items: flex-end; }
+  .speech-container {
+    max-width: 82%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .chat-turn.user .speech-container { align-items: flex-end; }
 
-  .bubble {
+  .agent-label-pill {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 12px;
+    padding: 2px 8px;
+    width: fit-content;
+  }
+
+  .bubble-content {
     font-size: 14.5px;
-    line-height: 1.6;
+    line-height: 1.65;
     overflow-wrap: anywhere;
+    color: var(--text-primary);
   }
-  .row.user .bubble {
-    background: var(--panel);
-    border: 1px solid var(--hairline);
-    border-radius: 12px 12px 2px 12px;
-    padding: 10px 14px;
+  .chat-turn.ai .bubble-content {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px 14px 14px 14px;
+    padding: 14px 18px;
+  }
+  .chat-turn.user .bubble-content {
+    background: #1c2436;
+    border: 1px solid var(--border-strong);
+    border-radius: 14px 4px 14px 14px;
+    padding: 12px 16px;
     white-space: pre-wrap;
   }
-  .bubble.error { color: #e88a5f; }
-  .bubble p { margin: 0 0 8px; }
-  .bubble p:last-child { margin-bottom: 0; }
-  .bubble ul { margin: 4px 0 8px; padding-left: 20px; }
-  .bubble li { margin-bottom: 3px; }
-  .bubble strong { color: var(--text); font-weight: 600; }
+  .bubble-content.error {
+    background: var(--danger-subtle);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: var(--danger);
+  }
 
-  .msg-meta {
-    font-size: 11px;
-    color: var(--muted);
+  .bubble-content p { margin-bottom: 8px; }
+  .bubble-content p:last-child { margin-bottom: 0; }
+  .bubble-content ul { margin: 4px 0 8px; padding-left: 20px; }
+  .bubble-content li { margin-bottom: 3px; }
+  .bubble-content strong { color: #ffffff; font-weight: 600; }
+  .bubble-content code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .bubble-content pre {
+    background: #040608;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    overflow-x: auto;
+  }
+  .bubble-content pre code {
+    background: none;
+    padding: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .bubble-actions-row {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
   }
-
-  .copy-btn, .retry-btn {
+  .btn-text-action {
     background: none;
     border: none;
-    color: var(--muted);
-    cursor: pointer;
+    color: var(--text-secondary);
     font-size: 11px;
-    font-family: inherit;
-    padding: 0;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
   }
-  .copy-btn:hover, .retry-btn:hover { color: var(--accent); }
+  .btn-text-action:hover { color: var(--accent); }
 
-  .typing-dots {
-    display: flex;
-    gap: 4px;
-    padding: 4px 0;
-  }
-  .typing-dots span {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--muted);
-    animation: bounce 1.2s infinite ease-in-out;
-  }
-  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-
-  @keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-    30% { transform: translateY(-4px); opacity: 1; }
-  }
-
-  /* --- Suggestion chips --- */
-
+  /* Chips */
   #chips {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 0 20px 16px;
+    padding: 4px 24px 12px;
     flex-shrink: 0;
   }
-  #chips:empty { padding: 0; }
-  .chip {
-    background: var(--panel);
-    border: 1px solid var(--hairline);
-    color: var(--text);
-    border-radius: 16px;
-    padding: 7px 13px;
-    font-size: 12.5px;
-    font-family: inherit;
+  .suggestion-chip {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 20px;
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
   }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .suggestion-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
-  /* --- Composer --- */
+  /* Composer */
+  .composer-dock {
+    padding: 14px 24px calc(16px + env(safe-area-inset-bottom));
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
 
-  #composer {
+  .composer-frame {
     display: flex;
     gap: 10px;
-    padding: 14px 20px calc(18px + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--hairline);
-    flex-shrink: 0;
     align-items: flex-end;
+    background: var(--bg-base);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 8px 10px 8px 16px;
+    transition: border-color 0.15s;
+  }
+  .composer-frame:focus-within {
+    border-color: var(--accent);
   }
 
   #user-input {
     flex: 1;
-    background: var(--input-bg);
-    border: 1px solid var(--hairline);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
     font-family: inherit;
     font-size: 14.5px;
+    line-height: 1.45;
     resize: none;
     max-height: 120px;
-    line-height: 1.4;
+    padding: 4px 0;
   }
-  #user-input:focus { outline: none; border-color: var(--accent); }
+  #user-input::placeholder { color: var(--text-tertiary); }
 
   #send-btn {
     background: var(--accent);
-    color: #1b1400;
+    color: var(--accent-text);
     border: none;
-    border-radius: 10px;
-    padding: 12px 18px;
-    font-family: inherit;
-    font-weight: 600;
-    font-size: 14px;
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-weight: 700;
+    font-size: 13px;
     cursor: pointer;
     flex-shrink: 0;
   }
-  #send-btn:hover { background: var(--accent-dim); }
-  #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  #messages::-webkit-scrollbar { width: 6px; }
-  #messages::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 3px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { animation: none !important; transition: none !important; }
+  /* Typing Dot Indicator */
+  .typing-wave { display: flex; gap: 4px; padding: 4px 2px; }
+  .typing-wave span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-secondary);
+    animation: wavePulse 1s infinite ease-in-out;
   }
+  .typing-wave span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-wave span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes wavePulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+  #messages::-webkit-scrollbar { width: 5px; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<div class="app">
+<div class="app-frame">
   <header>
-    <div class="header-text">
-      <h1>AI Interview Prep Coach</h1>
-      <p id="header-sub">Practice questions, company research, and resume checks.</p>
-      <div id="session-badge"></div>
+    <div class="brand-area">
+      <div class="brand-logo">AI</div>
+      <div class="brand-details">
+        <h1 class="brand-title">PrepCoach <span class="brand-badge">PRO</span></h1>
+        <p class="brand-sub" id="header-sub">Practice questions, company research & resume checks.</p>
+        <div id="session-badge"></div>
+      </div>
     </div>
-    <div class="header-actions">
-      <button class="header-btn" id="history-btn">History</button>
-      <button class="header-btn" id="reset-btn">New session</button>
-      <button class="header-btn" id="logout-btn">Log out</button>
+    <div class="nav-controls">
+      <button class="btn-nav" id="history-btn">History</button>
+      <button class="btn-nav" id="reset-btn">New session</button>
+      <button class="btn-nav" id="logout-btn">Log out</button>
     </div>
   </header>
 
-  <!-- Login / Register -->
+  <!-- Screen 1: Auth -->
   <section id="auth" class="screen">
-    <p class="lede" id="auth-lede">Log in to start practicing and keep your session history.</p>
-    <div class="field">
-      <label for="auth-email">Email</label>
-      <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+    <div class="card-container">
+      <div class="card-head">
+        <h2 id="auth-title">Welcome back</h2>
+        <p id="auth-lede">Sign in to start practicing and access your saved sessions.</p>
+      </div>
+
+      <div class="tabs-pill">
+        <button type="button" class="tab-item active" id="tab-login">Log in</button>
+        <button type="button" class="tab-item" id="tab-register">Sign up</button>
+      </div>
+
+      <div class="field-group">
+        <label for="auth-email">Email Address</label>
+        <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="field-group">
+        <label for="auth-password">Password</label>
+        <div class="input-wrapper">
+          <input id="auth-password" class="with-btn" type="password" placeholder="At least 8 characters" autocomplete="current-password">
+          <button type="button" class="pwd-toggle-btn" id="toggle-pwd">Show</button>
+        </div>
+        <p class="caption-note" id="auth-hint" style="display:none;">Must be between 8 and 72 characters.</p>
+      </div>
+
+      <button class="btn-action-primary" id="auth-submit">Log in</button>
+      <div id="auth-error" class="msg-error-banner"></div>
+
+      <div class="features-strip">
+        <span class="feature-pill">DSA Calibration</span>
+        <span class="feature-pill">Behavioral STAR</span>
+        <span class="feature-pill">Company Intel</span>
+        <span class="feature-pill">Resume Grounding</span>
+      </div>
     </div>
-    <div class="field">
-      <label for="auth-password">Password</label>
-      <input id="auth-password" type="password" placeholder="At least 8 characters" autocomplete="current-password">
-      <p class="hint" id="auth-hint" style="display:none;">Use 8 to 72 characters.</p>
-    </div>
-    <button class="primary" id="auth-submit">Log in</button>
-    <button class="link-btn" id="auth-toggle">New here? Create an account</button>
-    <p id="auth-error" class="form-error"></p>
   </section>
 
-  <!-- Session setup -->
+  <!-- Screen 2: Setup -->
   <section id="setup" class="screen">
-    <p class="lede">Tell me who you’re preparing for and upload your resume, and I’ll tailor everything to you.</p>
-    <div class="field">
-      <label for="company">Company</label>
-      <input id="company" type="text" placeholder="e.g. Google" autocomplete="off">
+    <div class="card-container wide">
+      <div class="card-head">
+        <h2>Start a practice session</h2>
+        <p>Target role, company, and your resume will tailor every DSA problem, behavioral prompt, and briefing.</p>
+      </div>
+
+      <div class="field-group">
+        <label for="company">Target Company</label>
+        <input id="company" type="text" placeholder="e.g. Google, Amazon, Meta" autocomplete="off">
+      </div>
+
+      <div class="field-group">
+        <label for="role">Target Role</label>
+        <input id="role" type="text" placeholder="e.g. Software Engineer, Machine Learning Engineer" autocomplete="off">
+      </div>
+
+      <div class="field-group">
+        <label for="resume">Resume (PDF)</label>
+        <label class="resume-drop" for="resume">
+          <span class="resume-text" id="file-name-label">Upload your text-based PDF (max 5 MB)</span>
+          <span class="resume-btn-tag">Browse</span>
+          <input id="resume" type="file" accept="application/pdf,.pdf">
+        </label>
+        <p class="caption-note">Kept securely in your session state so you can resume anytime or delete it from History.</p>
+      </div>
+
+      <button class="btn-action-primary" id="start-btn">Start session</button>
+      <div id="setup-error" class="msg-error-banner"></div>
     </div>
-    <div class="field">
-      <label for="role">Role</label>
-      <input id="role" type="text" placeholder="e.g. Machine Learning Engineer Intern" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="resume">Resume (PDF)</label>
-      <input id="resume" type="file" accept="application/pdf,.pdf">
-      <p class="hint">Used only for this session to tailor answers. Max 5 MB, text-based PDF (not a scan).</p>
-    </div>
-    <button class="primary" id="start-btn">Start session</button>
-    <p id="setup-error" class="form-error"></p>
   </section>
 
-  <!-- Past sessions -->
+  <!-- Screen 3: History -->
   <section id="history" class="screen">
     <div id="history-list-view">
-      <button class="link-btn" id="history-close">&larr; Back</button>
-      <h2 class="history-title" style="margin-top:14px;">Your past sessions</h2>
-      <div id="history-list" style="margin-top:14px;"></div>
+      <button class="btn-text-action" id="history-close">&larr; Back to chat</button>
+      <h2 style="font-size: 19px; font-weight:700; margin-top: 10px;">Your past sessions</h2>
+      <div id="history-list" class="history-grid"></div>
     </div>
-    <div id="history-detail">
-      <button class="link-btn" id="history-back">&larr; All sessions</button>
-      <h2 class="history-title" id="history-detail-title"></h2>
-      <div class="history-actions" id="history-actions" style="display:none;">
-        <button class="history-action-btn primary-action" id="continue-session-btn">Continue this session</button>
-        <button class="history-action-btn danger-action" id="delete-resume-btn">Delete resume data</button>
-        <button class="history-action-btn danger-action" id="delete-chat-btn">Delete chat</button>
+
+    <div id="history-detail" style="display:none;">
+      <button class="btn-text-action" id="history-back">&larr; All sessions</button>
+      <div style="background:var(--bg-subtle); padding:16px 20px; border-radius:12px; border:1px solid var(--border); margin:12px 0;">
+        <h2 id="history-detail-title" style="font-size: 17px; font-weight:700;"></h2>
+        <div class="history-button-row" id="history-actions" style="display:none;">
+          <button class="btn-history-ctrl primary" id="continue-session-btn">Continue session</button>
+          <button class="btn-history-ctrl danger" id="delete-resume-btn">Delete resume</button>
+          <button class="btn-history-ctrl danger" id="delete-chat-btn">Delete chat</button>
+        </div>
+        <p id="history-status" class="caption-note" style="margin-top:8px;"></p>
       </div>
-      <p class="history-status" id="history-status"></p>
-      <div id="history-messages" style="display:flex;flex-direction:column;gap:18px;"></div>
+      <div id="history-messages" style="display:flex; flex-direction:column; gap:16px;"></div>
     </div>
   </section>
 
-  <!-- Live chat -->
+  <!-- Screen 4: Chat -->
   <section id="chat-screen" class="screen">
     <div id="messages"></div>
     <div id="chips"></div>
-    <div id="composer">
-      <textarea id="user-input" rows="1" maxlength="2000" placeholder="Message the coach..."></textarea>
-      <button id="send-btn">Send</button>
+    <div class="composer-dock">
+      <div class="composer-frame">
+        <textarea id="user-input" rows="1" maxlength="2000" placeholder="Ask for a DSA problem, behavioral question, company research, or resume check..."></textarea>
+        <button id="send-btn">Send</button>
+      </div>
     </div>
   </section>
 </div>
 
 <script>
-  const API_BASE = "";
+  // Pointed to your live Render backend for instant, lag-free Vercel edge delivery
+  const API_BASE = "https://ai-interview-prep-production-lrvm.onrender.com";
   const MAX_RESUME_BYTES = 5 * 1024 * 1024;
   const TOKEN_KEY = "coach_token";
 
@@ -496,13 +797,12 @@
   let userEmail = null;
   let threadId = null;
   let nearBottom = true;
-  let busy = false;        // true while a /chat request is in flight
-  let lastUserText = null; // remembers the last message, for the Retry link on failure
-  let authMode = "login";  // "login" | "register"
+  let busy = false;
+  let lastUserText = null;
+  let authMode = "login";
   let selectedHistorySession = null;
   let selectedSessionCanContinue = false;
 
-  // Thrown by authFetch after a 401, so callers can stop quietly.
   class AuthError extends Error {}
 
   const screens = {
@@ -511,6 +811,7 @@
     history: document.getElementById("history"),
     chat: document.getElementById("chat-screen"),
   };
+
   const sessionBadge = document.getElementById("session-badge");
   const messagesEl = document.getElementById("messages");
   const setupError = document.getElementById("setup-error");
@@ -523,9 +824,13 @@
   const logoutBtn = document.getElementById("logout-btn");
   const historyBtn = document.getElementById("history-btn");
   const authSubmit = document.getElementById("auth-submit");
-  const authToggle = document.getElementById("auth-toggle");
+  const tabLogin = document.getElementById("tab-login");
+  const tabRegister = document.getElementById("tab-register");
   const authEmail = document.getElementById("auth-email");
   const authPassword = document.getElementById("auth-password");
+  const togglePwdBtn = document.getElementById("toggle-pwd");
+  const resumeInput = document.getElementById("resume");
+  const fileNameLabel = document.getElementById("file-name-label");
 
   const SUGGESTIONS = [
     "Give me a DSA question",
@@ -534,19 +839,19 @@
     "What should I brush up on in my resume?",
   ];
 
-  // iOS/Android will forcibly scroll the page to keep a focused input above
-  // the on-screen keyboard, even though body/html are pinned with
-  // position: fixed + overflow: hidden. Snapping scroll back to (0, 0)
-  // whenever the visual viewport changes undoes that shift.
+  const AGENT_LABELS = {
+    dsa: "DSA Practice",
+    behavioral: "Behavioral",
+    company_research: "Company Briefing",
+    resume_gap: "Resume Check",
+    general_chat: "Coach",
+  };
+
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", () => {
-      window.scrollTo(0, 0);
-    });
+    window.visualViewport.addEventListener("resize", () => window.scrollTo(0, 0));
   }
   window.addEventListener("scroll", () => {
-    if (window.scrollY !== 0 || window.scrollX !== 0) {
-      window.scrollTo(0, 0);
-    }
+    if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
   });
 
   startBtn.addEventListener("click", startSession);
@@ -555,18 +860,35 @@
   logoutBtn.addEventListener("click", logout);
   historyBtn.addEventListener("click", openHistory);
   authSubmit.addEventListener("click", submitAuth);
-  authToggle.addEventListener("click", toggleAuthMode);
-  document.getElementById("history-close").addEventListener("click", () => {
-    showScreen(threadId ? "chat" : "setup");
+  tabLogin.addEventListener("click", () => setAuthMode("login"));
+  tabRegister.addEventListener("click", () => setAuthMode("register"));
+
+  togglePwdBtn.addEventListener("click", () => {
+    const isHidden = authPassword.type === "password";
+    authPassword.type = isHidden ? "text" : "password";
+    togglePwdBtn.textContent = isHidden ? "Hide" : "Show";
   });
+
+  resumeInput.addEventListener("change", () => {
+    const f = resumeInput.files[0];
+    if (f) {
+      const sizeKb = Math.max(1, Math.round(f.size / 1024));
+      fileNameLabel.textContent = `${f.name} (${sizeKb} KB)`;
+      fileNameLabel.classList.add("chosen");
+    } else {
+      fileNameLabel.textContent = "Upload your text-based PDF (max 5 MB)";
+      fileNameLabel.classList.remove("chosen");
+    }
+  });
+
+  document.getElementById("history-close").addEventListener("click", () => showScreen(threadId ? "chat" : "setup"));
   document.getElementById("history-back").addEventListener("click", showHistoryList);
   document.getElementById("continue-session-btn").addEventListener("click", continueHistorySession);
   document.getElementById("delete-resume-btn").addEventListener("click", deleteHistoryResume);
   document.getElementById("delete-chat-btn").addEventListener("click", deleteHistoryChat);
 
-  authPassword.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") submitAuth();
-  });
+  authEmail.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuth(); });
+  authPassword.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuth(); });
 
   inputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -574,6 +896,7 @@
       sendMessage();
     }
   });
+
   inputEl.addEventListener("input", () => {
     inputEl.style.height = "auto";
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
@@ -581,9 +904,7 @@
 
   messagesEl.addEventListener("scroll", () => {
     nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
-  });
-
-  // ---------- helpers ----------
+  }, { passive: true });
 
   function showScreen(name) {
     for (const [key, el] of Object.entries(screens)) {
@@ -605,7 +926,6 @@
     return Object.assign({ Authorization: `Bearer ${token}` }, extra || {});
   }
 
-  // Like fetch, but adds the login token. A 401 logs the user out and throws AuthError.
   async function authFetch(url, opts) {
     opts = opts || {};
     opts.headers = authHeaders(opts.headers);
@@ -617,8 +937,6 @@
     return res;
   }
 
-  // Reads the server's error message. FastAPI returns a string for most errors
-  // and a list of objects for validation errors (422).
   async function readError(res, fallback) {
     try {
       const body = await res.json();
@@ -626,9 +944,7 @@
       if (Array.isArray(body.detail) && body.detail[0] && body.detail[0].msg) {
         return String(body.detail[0].msg).replace(/^Value error, /, "");
       }
-    } catch (_) {
-      // response wasn't JSON — keep the fallback
-    }
+    } catch (_) {}
     return fallback;
   }
 
@@ -641,25 +957,27 @@
     chipsEl.innerHTML = "";
     document.getElementById("company").value = "";
     document.getElementById("role").value = "";
-    document.getElementById("resume").value = "";
+    resumeInput.value = "";
+    fileNameLabel.textContent = "Upload your text-based PDF (max 5 MB)";
+    fileNameLabel.classList.remove("chosen");
     inputEl.value = "";
     inputEl.style.height = "auto";
     startBtn.disabled = false;
     startBtn.textContent = "Start session";
   }
 
-  // ---------- auth ----------
-
-  function toggleAuthMode() {
-    authMode = authMode === "login" ? "register" : "login";
-    const register = authMode === "register";
-    authSubmit.textContent = register ? "Create account" : "Log in";
-    authToggle.textContent = register ? "Already have an account? Log in" : "New here? Create an account";
-    document.getElementById("auth-hint").style.display = register ? "block" : "none";
-    authPassword.autocomplete = register ? "new-password" : "current-password";
-    document.getElementById("auth-lede").textContent = register
-      ? "Create an account so your sessions are saved to you."
-      : "Log in to start practicing and keep your session history.";
+  function setAuthMode(mode) {
+    authMode = mode;
+    const isReg = authMode === "register";
+    tabLogin.classList.toggle("active", !isReg);
+    tabRegister.classList.toggle("active", isReg);
+    authSubmit.textContent = isReg ? "Create account" : "Log in";
+    document.getElementById("auth-title").textContent = isReg ? "Create your account" : "Welcome back";
+    document.getElementById("auth-lede").textContent = isReg
+      ? "Create an account so your sessions and resume history are saved."
+      : "Sign in to start practicing and access your saved sessions.";
+    document.getElementById("auth-hint").style.display = isReg ? "block" : "none";
+    authPassword.autocomplete = isReg ? "new-password" : "current-password";
     authError.style.display = "none";
   }
 
@@ -672,6 +990,7 @@
     }
 
     authSubmit.disabled = true;
+    authSubmit.textContent = authMode === "register" ? "Creating account..." : "Logging in...";
     authError.style.display = "none";
 
     try {
@@ -683,7 +1002,6 @@
           body: JSON.stringify({ email, password }),
         });
       } else {
-        // The login endpoint expects a form body, with the email in the "username" field.
         res = await fetch(`${API_BASE}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -691,9 +1009,7 @@
         });
       }
 
-      if (!res.ok) {
-        throw new Error(await readError(res, "Couldn't sign you in. Please try again."));
-      }
+      if (!res.ok) throw new Error(await readError(res, "Couldn't sign you in. Please try again."));
 
       const data = await res.json();
       token = data.access_token;
@@ -702,42 +1018,32 @@
       authPassword.value = "";
       enterApp();
     } catch (err) {
-      const offline = err instanceof TypeError;
-      showError(authError, offline
-        ? "Couldn't reach the server. Check your connection and try again."
-        : (err.message || "Couldn't sign you in. Please try again."));
+      showError(authError, err.message || "Couldn't sign you in. Please try again.");
     } finally {
       authSubmit.disabled = false;
+      authSubmit.textContent = authMode === "register" ? "Create account" : "Log in";
     }
   }
 
   function enterApp() {
     document.getElementById("header-sub").textContent = userEmail
       ? `Signed in as ${userEmail}`
-      : "Practice questions, company research, and resume checks.";
+      : "Practice questions, company research & resume checks.";
     showScreen("setup");
   }
 
-  // Used when the token is missing or rejected. Does not call the server.
   function forceLogin(message) {
     token = null;
     userEmail = null;
     localStorage.removeItem(TOKEN_KEY);
     clearChatState();
-    document.getElementById("header-sub").textContent = "Practice questions, company research, and resume checks.";
+    document.getElementById("header-sub").textContent = "Practice questions, company research & resume checks.";
     showScreen("auth");
     if (message) showError(authError, message);
   }
 
-  function logout() {
-    forceLogin();
-  }
+  function logout() { forceLogin(); }
 
-  // ---------- server readiness ----------
-
-  // Waits until the server's AI engine has finished loading (the server answers
-  // /health straight away, but reports ready:false while it is still warming up).
-  // Returns true when ready, false if it takes longer than about two minutes.
   async function waitUntilReady(onStatus) {
     const deadline = Date.now() + 120000;
     while (Date.now() < deadline) {
@@ -746,27 +1052,25 @@
         if (res.ok) {
           const data = await res.json();
           if (data.ready !== false) return true;
-          onStatus("Loading the AI engine...");
+          onStatus("Warming up AI engine...");
         } else {
-          onStatus("Waking the server...");
+          onStatus("Waking server...");
         }
       } catch (_) {
-        onStatus("Waking the server...");
+        onStatus("Waking server...");
       }
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+      await new Promise(r => setTimeout(r, 2000));
     }
     return false;
   }
 
-  // ---------- sessions ----------
-
   async function startSession() {
     const company = document.getElementById("company").value.trim();
     const role = document.getElementById("role").value.trim();
-    const resumeFile = document.getElementById("resume").files[0];
+    const resumeFile = resumeInput.files[0];
 
     if (!company || !role || !resumeFile) {
-      showError(setupError, "Please fill in both fields and upload your resume.");
+      showError(setupError, "Please fill in both fields and choose your resume.");
       return;
     }
     if (!resumeFile.name.toLowerCase().endsWith(".pdf")) {
@@ -779,17 +1083,12 @@
     }
 
     startBtn.disabled = true;
-    startBtn.textContent = "Checking the server...";
+    startBtn.textContent = "Connecting...";
     setupError.style.display = "none";
 
     try {
-      // If the free server was asleep, wait for it here instead of failing.
-      const ready = await waitUntilReady((status) => {
-        startBtn.textContent = status;
-      });
-      if (!ready) {
-        throw new Error("The server is taking too long to start. Please try again in a minute.");
-      }
+      const ready = await waitUntilReady(st => startBtn.textContent = st);
+      if (!ready) throw new Error("Server took too long to wake up. Please try again.");
 
       startBtn.textContent = "Uploading & starting...";
 
@@ -798,87 +1097,63 @@
       form.append("role", role);
       form.append("resume", resumeFile);
 
-      // No Content-Type header here: the browser sets the multipart boundary itself.
       const res = await authFetch(`${API_BASE}/session`, { method: "POST", body: form });
-
-      if (!res.ok) {
-        throw new Error(await readError(res, "Couldn't start a session. Please try again."));
-      }
+      if (!res.ok) throw new Error(await readError(res, "Couldn't start a session."));
 
       const data = await res.json();
       threadId = data.thread_id;
-
       sessionBadge.textContent = `${company} · ${role}`;
       showScreen("chat");
 
-      addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
+      addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis or how to explain a project.");
       renderChips();
-
-      // Don't auto-focus the composer here. Focusing immediately pops the
-      // mobile keyboard open mid-transition and pushes the header out of view.
     } catch (err) {
-      if (err instanceof AuthError) return; // forceLogin already showed the login screen
-      const offline = err instanceof TypeError; // fetch itself failed
-      showError(setupError, offline
-        ? "Couldn't reach the server. Check your connection and try again."
-        : (err.message || "Couldn't start a session. Please try again."));
+      if (err instanceof AuthError) return;
+      showError(setupError, err.message || "Couldn't start session.");
       startBtn.disabled = false;
       startBtn.textContent = "Start session";
     }
   }
 
-  function resetSession(errorMessage) {
+  function resetSession(errMsg) {
     clearChatState();
     showScreen("setup");
-
-    // Only accept strings, so a stray click event is never shown as an error.
-    if (typeof errorMessage === "string" && errorMessage) {
-      showError(setupError, errorMessage);
-    } else {
-      setupError.style.display = "none";
-    }
+    if (typeof errMsg === "string" && errMsg) showError(setupError, errMsg);
+    else setupError.style.display = "none";
   }
-
-  // ---------- history ----------
 
   async function openHistory() {
     showScreen("history");
     showHistoryList();
     const listEl = document.getElementById("history-list");
-    listEl.innerHTML = `<p class="hint">Loading...</p>`;
+    listEl.innerHTML = `<p class="caption-note">Loading past sessions...</p>`;
 
     try {
       const res = await authFetch(`${API_BASE}/sessions`);
-      if (!res.ok) throw new Error(await readError(res, "Couldn't load your sessions."));
+      if (!res.ok) throw new Error(await readError(res, "Couldn't load sessions."));
       const sessions = await res.json();
 
       listEl.innerHTML = "";
       if (sessions.length === 0) {
-        listEl.innerHTML = `<p class="hint">No sessions yet. Start one and it will show up here.</p>`;
+        listEl.innerHTML = `<p class="caption-note">No saved sessions yet. Start one to see it here.</p>`;
         return;
       }
-      sessions.forEach((s) => {
-        const btn = document.createElement("button");
-        btn.className = "history-item";
-        const title = document.createElement("span");
-        title.textContent = s.title;
-        const when = document.createElement("small");
-        when.textContent = new Date(s.created_at).toLocaleString();
-        btn.appendChild(title);
-        btn.appendChild(when);
-        btn.addEventListener("click", () => openHistoryDetail(s));
-        listEl.appendChild(btn);
+      sessions.forEach(s => {
+        const item = document.createElement("div");
+        item.className = "history-card-item";
+        item.innerHTML = `
+          <div>
+            <div class="history-item-title">${escapeHtml(s.title)}</div>
+            <div class="history-item-date">${new Date(s.created_at).toLocaleString()}</div>
+          </div>
+          <span style="color:var(--text-tertiary);">&rsaquo;</span>
+        `;
+        item.addEventListener("click", () => openHistoryDetail(s));
+        listEl.appendChild(item);
       });
     } catch (err) {
       if (err instanceof AuthError) return;
-      listEl.innerHTML = "";
-      const p = document.createElement("p");
-      p.className = "form-error";
-      p.style.display = "block";
-      p.textContent = err instanceof TypeError
-        ? "Couldn't reach the server. Check your connection and try again."
-        : (err.message || "Couldn't load your sessions.");
-      listEl.appendChild(p);
+      listEl.innerHTML = `<p class="msg-error-banner" style="display:block;">${escapeHtml(err.message)}</p>`;
     }
   }
 
@@ -891,7 +1166,7 @@
     selectedHistorySession = session;
     selectedSessionCanContinue = false;
     document.getElementById("history-list-view").style.display = "none";
-    document.getElementById("history-detail").style.display = "flex";
+    document.getElementById("history-detail").style.display = "block";
     document.getElementById("history-detail-title").textContent = session.title;
     const box = document.getElementById("history-messages");
     const actions = document.getElementById("history-actions");
@@ -899,23 +1174,25 @@
     const continueBtn = document.getElementById("continue-session-btn");
     const deleteResumeBtn = document.getElementById("delete-resume-btn");
     const deleteChatBtn = document.getElementById("delete-chat-btn");
+
     actions.style.display = "none";
-    status.textContent = "Checking resume data...";
-    box.innerHTML = `<p class="hint">Loading messages...</p>`;
+    status.textContent = "Checking resume data availability...";
+    box.innerHTML = `<p class="caption-note">Loading conversation history...</p>`;
 
     try {
       const [messagesRes, statusRes] = await Promise.all([
         authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/messages`),
         authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/status`)
       ]);
-      if (!messagesRes.ok) throw new Error(await readError(messagesRes, "Couldn't load this session."));
-      if (!statusRes.ok) throw new Error(await readError(statusRes, "Couldn't check resume data."));
+      if (!messagesRes.ok) throw new Error(await readError(messagesRes, "Couldn't load history."));
+      if (!statusRes.ok) throw new Error(await readError(statusRes, "Couldn't verify resume status."));
+
       const msgs = await messagesRes.json();
       const state = await statusRes.json();
 
       box.innerHTML = "";
-      if (msgs.length === 0) box.innerHTML = `<p class="hint">This session has no messages yet.</p>`;
-      msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content, { container: box }));
+      if (msgs.length === 0) box.innerHTML = `<p class="caption-note">This session has no messages yet.</p>`;
+      msgs.forEach(m => addMessage(m.role === "user" ? "user" : "ai", m.content, { container: box, agent: m.agent }));
 
       selectedSessionCanContinue = !!state.can_continue;
       actions.style.display = "flex";
@@ -923,16 +1200,11 @@
       deleteResumeBtn.style.display = selectedSessionCanContinue ? "inline-block" : "none";
       deleteChatBtn.style.display = "inline-block";
       status.textContent = selectedSessionCanContinue
-        ? "Resume data is available. You can continue this conversation."
-        : "Resume data has been deleted or is unavailable. Chat history is read-only.";
+        ? "Resume data is available. You can continue this chat."
+        : "Resume data has been deleted or expired. Chat history is read-only.";
     } catch (err) {
       if (err instanceof AuthError) return;
-      box.innerHTML = "";
-      const p = document.createElement("p");
-      p.className = "form-error";
-      p.style.display = "block";
-      p.textContent = err.message || "Couldn't load this session.";
-      box.appendChild(p);
+      box.innerHTML = `<p class="msg-error-banner" style="display:block;">${escapeHtml(err.message)}</p>`;
       status.textContent = "";
     }
   }
@@ -944,9 +1216,8 @@
     btn.disabled = true;
     btn.textContent = "Opening...";
     try {
-      // Reload history so the live chat starts with the saved conversation visible.
       const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(session.id)}/messages`);
-      if (!res.ok) throw new Error(await readError(res, "Couldn't reopen this session."));
+      if (!res.ok) throw new Error(await readError(res, "Couldn't reopen session."));
       const msgs = await res.json();
       threadId = session.id;
       lastUserText = null;
@@ -954,10 +1225,10 @@
       sendBtn.disabled = false;
       messagesEl.innerHTML = "";
       if (msgs.length === 0) {
-        addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume — like a gap analysis, or how to explain one of your projects.");
+        addMessage("ai", "Ask me for a DSA question, a behavioral question, company research, or anything about your resume.");
         renderChips();
       } else {
-        msgs.forEach((m) => addMessage(m.role === "user" ? "user" : "ai", m.content));
+        msgs.forEach(m => addMessage(m.role === "user" ? "user" : "ai", m.content, { agent: m.agent }));
         chipsEl.innerHTML = "";
       }
       sessionBadge.textContent = session.title;
@@ -968,16 +1239,16 @@
       inputEl.style.height = "auto";
       inputEl.focus();
     } catch (err) {
-      if (!(err instanceof AuthError)) alert(err.message || "Couldn't continue this session.");
+      if (!(err instanceof AuthError)) alert(err.message || "Couldn't continue session.");
     } finally {
       btn.disabled = false;
-      btn.textContent = "Continue this session";
+      btn.textContent = "Continue session";
     }
   }
 
   async function deleteHistoryResume() {
     if (!selectedHistorySession || !selectedSessionCanContinue) return;
-    if (!confirm("Delete the resume data for this session? Your saved chat messages will remain readable, but you will no longer be able to continue this session.")) return;
+    if (!confirm("Delete the resume data for this session? Chat messages will remain readable, but you can no longer continue this chat.")) return;
     const btn = document.getElementById("delete-resume-btn");
     const status = document.getElementById("history-status");
     btn.disabled = true;
@@ -989,56 +1260,52 @@
       if (threadId === selectedHistorySession.id) clearChatState();
       document.getElementById("continue-session-btn").style.display = "none";
       btn.style.display = "none";
-      status.textContent = "Resume data deleted. Your previous messages are still preserved above.";
+      status.textContent = "Resume data deleted. Previous messages preserved.";
     } catch (err) {
       if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete resume data.");
     } finally {
       btn.disabled = false;
-      btn.textContent = "Delete resume data";
+      btn.textContent = "Delete resume";
     }
   }
 
   async function deleteHistoryChat() {
     if (!selectedHistorySession) return;
-    if (!confirm("Delete this chat session and all of its messages permanently?")) return;
+    if (!confirm("Delete this session and all its messages permanently?")) return;
     const btn = document.getElementById("delete-chat-btn");
     btn.disabled = true;
     btn.textContent = "Deleting...";
     try {
       const res = await authFetch(`${API_BASE}/sessions/${encodeURIComponent(selectedHistorySession.id)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await readError(res, "Couldn't delete this chat."));
+      if (!res.ok) throw new Error(await readError(res, "Couldn't delete chat."));
       if (threadId === selectedHistorySession.id) clearChatState();
       selectedHistorySession = null;
       await openHistory();
     } catch (err) {
-      if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete this chat.");
+      if (!(err instanceof AuthError)) alert(err.message || "Couldn't delete chat.");
     } finally {
       btn.disabled = false;
       btn.textContent = "Delete chat";
     }
   }
 
-  // ---------- chat ----------
-
   function renderChips() {
     chipsEl.innerHTML = "";
-    SUGGESTIONS.forEach((text) => {
-      const chip = document.createElement("button");
-      chip.className = "chip";
-      chip.textContent = text;
-      chip.addEventListener("click", () => sendMessage(text));
-      chipsEl.appendChild(chip);
+    SUGGESTIONS.forEach(text => {
+      const c = document.createElement("button");
+      c.className = "suggestion-chip";
+      c.textContent = text;
+      c.addEventListener("click", () => sendMessage(text));
+      chipsEl.appendChild(c);
     });
   }
 
-  // isRetry = true re-sends the last message without adding a second copy of
-  // it to the chat window.
   async function sendMessage(overrideText, isRetry = false) {
     if (busy || !threadId) return;
-
     const text = (overrideText ?? inputEl.value).trim();
     if (!text) return;
 
+    const requestThreadId = threadId;
     busy = true;
     lastUserText = text;
     chipsEl.innerHTML = "";
@@ -1053,20 +1320,17 @@
       const res = await authFetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thread_id: threadId, user_input: text }),
+        body: JSON.stringify({ thread_id: requestThreadId, user_input: text }),
       });
 
       typingRow.remove();
+      if (threadId !== requestThreadId) return;
 
       if (!res.ok) {
-        // The server restarted or the session was cleaned up: send the
-        // user back to the setup screen to upload their resume again.
         if (res.status === 404) {
           resetSession("Your session expired. Please start a new session and upload your resume again.");
           return;
         }
-
-        // Surface the real backend message instead of a generic one.
         const detail = await readError(res, `Request failed (${res.status}).`);
         const isRetryable = res.status >= 500 || res.status === 429;
         addMessage("ai", detail, { isError: true, showRetry: isRetryable });
@@ -1074,34 +1338,30 @@
       }
 
       const data = await res.json();
-      addMessage("ai", data.final_result);
+      addMessage("ai", data.final_result, { agent: data.classifier });
     } catch (err) {
       typingRow.remove();
-      if (err instanceof AuthError) return; // forceLogin already switched screens
-      addMessage(
-        "ai",
-        "Couldn't reach the server. Check your connection and try again.",
-        { isError: true, showRetry: true }
-      );
+      if (err instanceof AuthError || threadId !== requestThreadId) return;
+      addMessage("ai", "Couldn't reach the server. Please check your connection and try again.", { isError: true, showRetry: true });
     } finally {
-      busy = false;
-      if (threadId) sendBtn.disabled = false;
+      if (threadId === requestThreadId) {
+        busy = false;
+        sendBtn.disabled = false;
+      }
     }
   }
 
   function scrollToBottomIfNeeded() {
-    if (nearBottom) {
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+    if (nearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   function addTypingIndicator() {
     const row = document.createElement("div");
-    row.className = "row ai";
+    row.className = "chat-turn ai";
     row.innerHTML = `
-      <div class="avatar ai">C</div>
-      <div class="bubble-wrap">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
+      <div class="user-avatar ai">AI</div>
+      <div class="speech-container">
+        <div class="bubble-content"><div class="typing-wave"><span></span><span></span><span></span></div></div>
       </div>
     `;
     messagesEl.appendChild(row);
@@ -1110,56 +1370,59 @@
     return row;
   }
 
-  // opts.container lets the history screen reuse this to render past messages.
-  function addMessage(role, text, opts) {
-    opts = opts || {};
+  function addMessage(role, text, opts = {}) {
     const container = opts.container || messagesEl;
     const row = document.createElement("div");
-    row.className = `row ${role}`;
+    row.className = `chat-turn ${role}`;
 
     const avatar = document.createElement("div");
-    avatar.className = `avatar ${role}`;
-    avatar.textContent = role === "ai" ? "C" : "Y";
+    avatar.className = `user-avatar ${role}`;
+    avatar.textContent = role === "ai" ? "AI" : (userEmail ? userEmail[0].toUpperCase() : "U");
 
     const wrap = document.createElement("div");
-    wrap.className = "bubble-wrap";
+    wrap.className = "speech-container";
+
+    if (role === "ai" && !opts.isError && opts.agent && AGENT_LABELS[opts.agent]) {
+      const tag = document.createElement("span");
+      tag.className = "agent-label-pill";
+      tag.textContent = AGENT_LABELS[opts.agent];
+      wrap.appendChild(tag);
+    }
 
     const bubble = document.createElement("div");
-    bubble.className = "bubble" + (opts.isError ? " error" : "");
+    bubble.className = "bubble-content" + (opts.isError ? " error" : "");
     bubble.innerHTML = role === "ai" ? renderMarkdownLite(text) : escapeHtml(text);
-
     wrap.appendChild(bubble);
 
     if (role === "ai") {
-      const meta = document.createElement("div");
-      meta.className = "msg-meta";
+      const foot = document.createElement("div");
+      foot.className = "bubble-actions-row";
 
       const copyBtn = document.createElement("button");
-      copyBtn.className = "copy-btn";
+      copyBtn.className = "btn-text-action";
       copyBtn.textContent = "Copy";
       copyBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(text);
-          copyBtn.textContent = "Copied";
+          copyBtn.textContent = "Copied ✓";
         } catch (_) {
-          copyBtn.textContent = "Copy failed";
+          copyBtn.textContent = "Failed";
         }
         setTimeout(() => (copyBtn.textContent = "Copy"), 1200);
       });
-      meta.appendChild(copyBtn);
+      foot.appendChild(copyBtn);
 
       if (opts.showRetry && lastUserText) {
         const retryBtn = document.createElement("button");
-        retryBtn.className = "retry-btn";
+        retryBtn.className = "btn-text-action";
         retryBtn.textContent = "Retry";
         retryBtn.addEventListener("click", () => {
-          row.remove(); // drop the old error message, then try again
+          row.remove();
           sendMessage(lastUserText, true);
         });
-        meta.appendChild(retryBtn);
+        foot.appendChild(retryBtn);
       }
-
-      wrap.appendChild(meta);
+      wrap.appendChild(foot);
     }
 
     row.appendChild(avatar);
@@ -1175,37 +1438,53 @@
     return div.innerHTML;
   }
 
-  // Minimal, safe markdown rendering: escapes HTML first, then adds
-  // support for **bold**, "- " bullet lists, and paragraph breaks.
   function renderMarkdownLite(raw) {
     const escaped = escapeHtml(String(raw ?? ""));
     const lines = escaped.split("\n");
     let html = "";
     let inList = false;
+    let inCode = false;
+    let code = [];
 
-    for (const line of lines) {
-      const trimmed = line.trim();
+    for (const l of lines) {
+      const trimmed = l.trim();
+      if (trimmed.startsWith("```")) {
+        if (inList) { html += "</ul>"; inList = false; }
+        if (!inCode) { inCode = true; code = []; }
+        else {
+          html += `<pre><code>${code.join("\n")}</code></pre>`;
+          inCode = false;
+          code = [];
+        }
+        continue;
+      }
+      if (inCode) {
+        code.push(l);
+        continue;
+      }
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
         if (!inList) { html += "<ul>"; inList = true; }
         html += `<li>${inlineFormat(trimmed.slice(2))}</li>`;
       } else {
         if (inList) { html += "</ul>"; inList = false; }
-        if (trimmed.length > 0) {
+        if (/^#{1,3}\s+/.test(trimmed)) {
+          html += `<p><strong>${inlineFormat(trimmed.replace(/^#{1,3}\s+/, ""))}</strong></p>`;
+        } else if (trimmed.length > 0) {
           html += `<p>${inlineFormat(trimmed)}</p>`;
         }
       }
     }
+    if (inCode) html += `<pre><code>${code.join("\n")}</code></pre>`;
     if (inList) html += "</ul>";
     return html || `<p>${inlineFormat(escaped)}</p>`;
   }
 
   function inlineFormat(text) {
-    return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    return text
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
-  // ---------- startup ----------
-
-  // If a saved token exists, check it with /auth/me before showing the app.
   (async function init() {
     showScreen("auth");
     const saved = localStorage.getItem(TOKEN_KEY);
@@ -1221,10 +1500,9 @@
         forceLogin();
       }
     } catch (_) {
-      // Server unreachable or still starting: keep the token and let the user try.
       showScreen("auth");
       token = null;
-      showError(authError, "Couldn't reach the server. Please try again in a moment.");
+      showError(authError, "Couldn't reach server. Please try again in a moment.");
     }
   })();
 </script>
