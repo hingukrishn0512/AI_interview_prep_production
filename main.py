@@ -10,9 +10,10 @@ import traceback
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select, delete, func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
@@ -219,24 +220,194 @@ def health_check():
 
 
 @app.get("/admin/users")
-async def get_admin_users(db: AsyncSession = Depends(get_db)):
-    """Returns live registration count and user list."""
-    res = await db.execute(select(User.email, User.created_at).order_by(User.created_at.desc()))
-    users = res.all()
-    session_count = await db.scalar(select(func.count(ChatSession.id)))
-    message_count = await db.scalar(select(func.count(Message.id)))
-    return {
+async def get_admin_users(
+    request: Request,
+    format: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns in-depth per-user session and message metrics, rendered as an HTML dashboard or JSON."""
+    stmt = (
+        select(User)
+        .options(selectinload(User.sessions).selectinload(ChatSession.messages))
+        .order_by(User.created_at.desc())
+    )
+    res = await db.execute(stmt)
+    users = res.scalars().all()
+
+    user_data = []
+    total_sessions_count = 0
+    total_messages_count = 0
+    company_counts = {}
+
+    for u in users:
+        u_sessions = u.sessions or []
+        total_sessions_count += len(u_sessions)
+        u_messages = [m for s in u_sessions for m in (s.messages or [])]
+        total_messages_count += len(u_messages)
+
+        all_dates = [s.created_at for s in u_sessions if s.created_at] + [
+            m.created_at for m in u_messages if m.created_at
+        ]
+        last_active = (
+            max(all_dates).strftime("%Y-%m-%d %H:%M")
+            if all_dates
+            else (u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "Never")
+        )
+
+        agent_breakdown = {}
+        for m in u_messages:
+            if m.agent_used:
+                agent_breakdown[m.agent_used] = agent_breakdown.get(m.agent_used, 0) + 1
+
+        session_list = []
+        for s in u_sessions:
+            s_msgs = s.messages or []
+            session_list.append({
+                "title": s.title,
+                "date": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "-",
+                "messages": len(s_msgs),
+            })
+            if "@" in s.title:
+                comp = s.title.split("@")[-1].strip()
+                company_counts[comp] = company_counts.get(comp, 0) + 1
+
+        user_data.append({
+            "email": u.email,
+            "joined": u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "-",
+            "session_count": len(u_sessions),
+            "message_count": len(u_messages),
+            "last_active": last_active,
+            "agent_breakdown": agent_breakdown,
+            "sessions": session_list,
+        })
+
+    data = {
         "total_users": len(users),
-        "total_sessions": session_count,
-        "total_messages": message_count,
-        "users": [
-            {
-                "email": u[0],
-                "joined": u[1].strftime("%Y-%m-%d %H:%M:%S") if u[1] else None,
-            }
-            for u in users
-        ],
+        "total_sessions": total_sessions_count,
+        "total_messages": total_messages_count,
+        "active_users": sum(1 for u in user_data if u["session_count"] > 0),
+        "top_companies": dict(sorted(company_counts.items(), key=lambda x: x[1], reverse=True)[:10]),
+        "users": user_data,
     }
+
+    accept_header = request.headers.get("accept", "")
+    if format == "json" or "application/json" in accept_header:
+        return data
+
+    rows_html = ""
+    for u in user_data:
+        sessions_badges = "".join(
+            f'<div class="session-pill"><strong>{s["title"]}</strong> <span class="badge-count">({s["messages"]} msgs)</span></div>'
+            for s in u["sessions"]
+        ) or '<span style="color:#71717a; font-size:12px;">No sessions started yet</span>'
+
+        agents_str = ", ".join(f"{k.upper()}: {v}" for k, v in u["agent_breakdown"].items()) or "-"
+
+        rows_html += f"""
+        <tr>
+          <td><strong style="color:#ffffff;">{u["email"]}</strong></td>
+          <td style="color:#a1a1aa; font-size:12.5px;">{u["joined"]}</td>
+          <td><span class="count-pill">{u["session_count"]}</span></td>
+          <td><span class="count-pill">{u["message_count"]}</span></td>
+          <td style="color:#a1a1aa; font-size:12px;">{u["last_active"]}</td>
+          <td style="color:#a1a1aa; font-size:12px;">{agents_str}</td>
+          <td><div class="session-pills-wrap">{sessions_badges}</div></td>
+        </tr>
+        """
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Prep Coach — User Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    background: #0d0d0d;
+    color: #f4f4f5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 32px 24px;
+    line-height: 1.5;
+  }}
+  .container {{ max-width: 1200px; margin: 0 auto; }}
+  .header {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #27272a; }}
+  .header h1 {{ font-size: 22px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 10px; }}
+  .header a {{ color: #a1a1aa; font-size: 13px; text-decoration: none; padding: 6px 12px; border: 1px solid #3f3f46; border-radius: 6px; transition: background 0.15s, color 0.15s; }}
+  .header a:hover {{ background: #27272a; color: #ffffff; }}
+  .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }}
+  .stat-card {{ background: #18181b; border: 1px solid #27272a; border-radius: 10px; padding: 18px 20px; }}
+  .stat-card .label {{ font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: #a1a1aa; letter-spacing: 0.05em; margin-bottom: 6px; }}
+  .stat-card .value {{ font-size: 28px; font-weight: 700; color: #ffffff; }}
+  .table-card {{ background: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; }}
+  .table-title {{ padding: 16px 20px; font-size: 15px; font-weight: 600; border-bottom: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; }}
+  table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px; }}
+  th {{ background: #202024; color: #a1a1aa; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 18px; border-bottom: 1px solid #27272a; font-weight: 600; }}
+  td {{ padding: 14px 18px; border-bottom: 1px solid #27272a; vertical-align: top; }}
+  tr:last-child td {{ border-bottom: none; }}
+  tr:hover td {{ background: #1c1c20; }}
+  .count-pill {{ background: #27272a; border: 1px solid #3f3f46; color: #ffffff; font-weight: 600; font-size: 12px; padding: 3px 8px; border-radius: 12px; display: inline-block; }}
+  .session-pills-wrap {{ display: flex; flex-direction: column; gap: 4px; max-width: 320px; }}
+  .session-pill {{ font-size: 12px; color: #e4e4e7; background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 8px; line-height: 1.3; }}
+  .badge-count {{ color: #a1a1aa; font-weight: 400; }}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span>📊</span> AI Prep Coach — User Analytics</h1>
+    <div>
+      <a href="/admin/users?format=json" target="_blank">View Raw JSON</a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Registered</div>
+      <div class="value">{data["total_users"]}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Sessions</div>
+      <div class="value">{data["total_sessions"]}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Messages Exchanged</div>
+      <div class="value">{data["total_messages"]}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active Users</div>
+      <div class="value">{data["active_users"]}</div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-title">
+      <span>User Breakdown ({data["total_users"]} accounts)</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>User Email</th>
+          <th>Joined</th>
+          <th>Sessions</th>
+          <th>Messages</th>
+          <th>Last Active</th>
+          <th>Agent Breakdown</th>
+          <th>Target Companies & Roles</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows_html}
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>
+"""
+    return HTMLResponse(content=html)
 
 
 @app.post("/session", response_model=StartSessionResponse)
